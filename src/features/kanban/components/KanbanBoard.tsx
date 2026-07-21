@@ -3,6 +3,19 @@ import { Task, Subject } from "@/types";
 import { IconClock as Clock, IconPlus as Plus, IconTrash as Trash, IconEdit as Edit2, IconGripVertical as GripVertical } from '@tabler/icons-react';
 import { motion } from "motion/react";
 import { Tooltip } from "@components/ui";
+import { getTodayString } from "@utils/index";
+
+export function getKanbanColumnForTask(task: Task, todayStr: string): Task["boardColumnId"] {
+  if (task.status === "Completed") return "completed";
+  if (task.status === "In Progress") return "in_progress";
+  if (task.status === "Revision" || task.boardColumnId === "revision") return "revision";
+
+  if (task.boardColumnId === "backlog") return "backlog";
+  if (task.boardColumnId === "today" && task.date === todayStr) return "today";
+
+  if (task.date === todayStr) return "today";
+  return "backlog";
+}
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -181,10 +194,12 @@ export default function KanbanBoard({
     }
   };
 
+  const todayStr = getTodayString();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 font-sans">
       {columns.map((col) => {
-        const colTasks = tasks.filter((t) => t.boardColumnId === col.id);
+        const colTasks = tasks.filter((t) => getKanbanColumnForTask(t, todayStr) === col.id);
         const isOver = activeDragOverCol === col.id;
 
         return (

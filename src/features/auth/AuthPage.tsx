@@ -21,6 +21,10 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
       let avatarUrl: string | undefined = undefined;
 
       try {
+        googleProvider.setCustomParameters({
+          prompt: "consent select_account",
+          access_type: "offline",
+        });
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
         email = user.email || email;
@@ -70,44 +74,6 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
     } catch (err: any) {
       console.error("Login error:", err);
       toast.error("Failed to initialize login: " + err.message, { id: toastId });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickStudentLogin = async (customName?: string, customEmail?: string) => {
-    setLoading(true);
-    const toastId = toast.loading("Initializing Student Workspace...");
-
-    try {
-      const email = customEmail || "student@studybuddy.app";
-      const name = customName || "Google Student";
-
-      const loginRes = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: "google",
-          email,
-          name,
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-        }),
-      });
-
-      if (!loginRes.ok) {
-        const errData = await loginRes.json();
-        throw new Error(errData.error || "Failed to log in.");
-      }
-
-      const loginData = await loginRes.json();
-      const loggedInUser = loginData.user;
-
-      toast.success(`Welcome, ${loggedInUser.name}!`, { id: toastId });
-      localStorage.setItem("portal_user_id", loggedInUser.id);
-      localStorage.setItem("portal_user", JSON.stringify(loggedInUser));
-      onLoginSuccess(loggedInUser);
-    } catch (err: any) {
-      toast.error("Quick login failed: " + err.message, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -190,22 +156,6 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
                 ) : (
                   <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                 )}
-              </button>
-
-              {/* Quick Student Login Button */}
-              <button
-                id="quick-student-login-btn"
-                onClick={() => handleQuickStudentLogin()}
-                disabled={loading}
-                className="relative group flex items-center justify-between w-full px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs">
-                    S
-                  </div>
-                  <span>Quick Student Workspace Access</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>

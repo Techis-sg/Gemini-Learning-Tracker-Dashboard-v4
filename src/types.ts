@@ -16,13 +16,15 @@ export interface TaskAttachment {
 
 export interface Task {
   id: string;
+  taskId?: string;
+  taskid?: string;
   dashboardId: string;
   subjectId?: string;
   title: string;
   description: string;
   date: string; // YYYY-MM-DD
   category: 'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA' | 'General' | (string & {});
-  status: 'Not Started' | 'In Progress' | 'Completed';
+  status: 'Not Started' | 'In Progress' | 'Completed' | 'Revision' | (string & {});
   priority: 'Low' | 'Medium' | 'High';
   notes: string;
   timeSpentMinutes: number;

@@ -234,6 +234,18 @@ export async function fetchUserDashboardData(userId: string | undefined): Promis
       tasksMap[dId].push(task);
     });
 
+    // Ensure every task has taskId & taskid populated sequentially
+    for (const dId of Object.keys(tasksMap)) {
+      tasksMap[dId] = tasksMap[dId].map((t, idx) => {
+        const seqTaskId = t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+        return {
+          ...t,
+          taskId: seqTaskId,
+          taskid: seqTaskId,
+        };
+      });
+    }
+
     // Dynamic database auto-updater to shift old hardcoded dates (e.g. 2026-07-11 to 2026-07-15) relative to today
     const referenceDate = new Date("2026-07-13");
     for (const dId of Object.keys(tasksMap)) {
@@ -286,21 +298,25 @@ export async function fetchUserDashboardData(userId: string | undefined): Promis
 
     for (const dId of Object.keys(tasksMap)) {
       for (const t of tasksMap[dId]) {
-        if (t.status === "Not Started" && t.date) {
-          if (t.date < todayStr && t.boardColumnId !== "backlog") {
-            t.boardColumnId = "backlog";
-            try {
-              await saveUserTask(normUid, t);
-            } catch (e) {
-              console.warn("Failed to auto-save backlog task", e);
-            }
-          } else if (t.date === todayStr && t.boardColumnId !== "today") {
-            t.boardColumnId = "today";
-            try {
-              await saveUserTask(normUid, t);
-            } catch (e) {
-              console.warn("Failed to auto-save today task", e);
-            }
+        let expectedCol: Task["boardColumnId"] = "backlog";
+        if (t.status === "Completed") {
+          expectedCol = "completed";
+        } else if (t.status === "In Progress") {
+          expectedCol = "in_progress";
+        } else if (t.status === "Revision" || t.boardColumnId === "revision") {
+          expectedCol = "revision";
+        } else if (t.date === todayStr) {
+          expectedCol = "today";
+        } else {
+          expectedCol = "backlog";
+        }
+
+        if (t.boardColumnId !== expectedCol) {
+          t.boardColumnId = expectedCol;
+          try {
+            await saveUserTask(normUid, t);
+          } catch (e) {
+            console.warn("Failed to auto-save normalized task column", e);
           }
         }
       }

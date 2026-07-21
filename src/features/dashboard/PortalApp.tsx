@@ -37,7 +37,7 @@ import {
   TaskDatatable,
   useTasks,
 } from "@features/tasks";
-import { AIChatDrawer } from "./AIChatDrawer";
+import { AIChatDrawer } from "@features/chatbot";
 import { Onboarding } from "./Onboarding";
 
 interface PortalAppProps {

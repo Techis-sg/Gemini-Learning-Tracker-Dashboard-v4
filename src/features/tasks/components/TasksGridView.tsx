@@ -124,45 +124,56 @@ export default function TasksGridView({
 
       {/* Grid View Pagination Controls */}
       {totalPages > 1 && (
-        <div className="bg-slate-50 border border-slate-100 px-5 py-4 flex flex-col sm:flex-row items-center justify-between font-mono text-xs gap-4 rounded-2xl shadow-sm">
-          <div className="text-slate-500 font-semibold uppercase">
-            Showing <span className="text-indigo-600 font-extrabold font-sans">{startIndex + 1}</span> to{" "}
+        <div className="bg-slate-50 border border-slate-100 px-5 py-4 flex flex-col md:flex-row items-center justify-between font-mono text-xs gap-4 rounded-2xl shadow-sm">
+          <div className="text-slate-500 font-semibold uppercase whitespace-nowrap flex-shrink-0 text-xs flex items-center gap-1">
+            <span>Showing</span>
+            <span className="text-indigo-600 font-extrabold font-sans">{startIndex + 1}</span>
+            <span>to</span>
             <span className="text-indigo-600 font-extrabold font-sans">
               {Math.min(startIndex + itemsPerPage, tasks.length)}
-            </span>{" "}
-            of <span className="text-slate-700 font-extrabold font-sans">{tasks.length}</span> targets
+            </span>
+            <span>of</span>
+            <span className="text-slate-700 font-extrabold font-sans">{tasks.length}</span>
+            <span>targets</span>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto max-w-full py-0.5">
             <button
               type="button"
               onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:hover:bg-white transition-all cursor-pointer"
+              className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:hover:bg-white transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
             >
               Previous
             </button>
-            <div className="flex items-center gap-1 font-bold text-slate-700">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => onPageChange(p)}
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${
-                    currentPage === p
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-                      : "bg-white border-slate-200 hover:bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+            <div className="flex items-center gap-1 font-bold text-slate-700 flex-shrink-0">
+              {(() => {
+                const chunkIndex = Math.floor((currentPage - 1) / 5);
+                const startPage = chunkIndex * 5 + 1;
+                const endPage = Math.min((chunkIndex + 1) * 5, totalPages);
+                const visiblePages = Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+
+                return visiblePages.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onPageChange(p)}
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all flex-shrink-0 ${
+                      currentPage === p
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm font-extrabold"
+                        : "bg-white border-slate-200 hover:bg-slate-50 text-slate-600"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ));
+              })()}
             </div>
             <button
               type="button"
               onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
               disabled={currentPage >= totalPages}
-              className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:hover:bg-white transition-all cursor-pointer"
+              className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:hover:bg-white transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
             >
               Next
             </button>

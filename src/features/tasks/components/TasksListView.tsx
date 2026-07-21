@@ -97,20 +97,22 @@ export default function TasksListView({
     },
     {
       id: "serial_id",
-      header: "S.No",
-      size: 70,
+      header: "Task ID",
+      size: 90,
       cell: ({ row }) => {
-        const serialNo = row.index + 1 + (currentPage - 1) * itemsPerPage;
+        const task = row.original;
+        const serialFallback = `TSK-${String(row.index + 1 + (currentPage - 1) * itemsPerPage).padStart(3, "0")}`;
+        const displayTaskId = task.taskId || task.taskid || serialFallback;
         return (
-          <div className="flex flex-col gap-0.5 font-mono text-[11px] font-bold text-slate-500">
-            <span>#{serialNo}</span>
+          <div className="flex flex-col gap-0.5 font-mono text-[11px] font-bold text-indigo-600">
+            <span>{displayTaskId}</span>
           </div>
         );
       }
     },
     {
       accessorKey: "title",
-      header: "Target",
+      header: "Task Name",
       size: 320,
       cell: ({ row }) => {
         const task = row.original;
@@ -150,8 +152,34 @@ export default function TasksListView({
       },
     },
     {
+      accessorKey: "status",
+      header: "Status",
+      size: 110,
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <span className={`text-[10px] px-2.5 py-1 font-bold uppercase rounded-lg shadow-sm border border-slate-100/20 inline-block ${getStatusColor(task.status)}`}>
+            {task.status}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      size: 100,
+      cell: ({ row }) => {
+        const task = row.original;
+        return (
+          <span className={`text-[10px] px-2.5 py-1 font-bold uppercase rounded-lg shadow-sm border border-slate-100/20 inline-block ${getPriorityColor(task.priority)}`}>
+            {task.priority}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: "timeSpentMinutes",
-      header: "Logged Time",
+      header: "TimeLog",
       size: 100,
       cell: ({ row }) => {
         const task = row.original;
@@ -165,37 +193,26 @@ export default function TasksListView({
       },
     },
     {
-      accessorKey: "subjectId",
-      header: "Associated Subject",
+      id: "association",
+      header: "Association",
       size: 180,
       cell: ({ row }) => {
         const task = row.original;
-        return task.subjectId ? (
-          <span className="bg-indigo-50/50 text-indigo-950 border border-indigo-100/30 rounded-xl px-2.5 py-1.5 font-sans font-bold text-xs shadow-sm inline-block">
-            📚 {getSubjectName(task.subjectId)}
-          </span>
-        ) : (
-          <span className="text-slate-400 font-mono text-[11px]">Unassociated</span>
-        );
-      },
-    },
-    {
-      id: "trackPriority",
-      header: "Track / Priority",
-      size: 150,
-      cell: ({ row }) => {
-        const task = row.original;
+        const subName = getSubjectName(task.subjectId);
         return (
-          <div className="flex flex-col gap-1.5 items-stretch max-w-[120px]">
-            <span className={`text-[9px] py-1 font-bold uppercase text-center rounded-lg shadow-sm border border-slate-100/20 ${getCategoryBg(task.category)}`}>
-              {task.category}
-            </span>
-            <span className={`text-[9px] py-1 font-bold uppercase text-center rounded-lg shadow-sm border border-slate-100/20 ${getPriorityColor(task.priority)}`}>
-              {task.priority}
-            </span>
-            <span className={`text-[9px] py-0.5 font-bold uppercase text-center rounded-lg shadow-sm border border-slate-100/20 ${getStatusColor(task.status)}`}>
-              {task.status}
-            </span>
+          <div className="flex flex-col gap-1 items-start max-w-[170px]">
+            {task.category && (
+              <span className={`text-[9px] px-2 py-0.5 font-bold uppercase rounded-md shadow-sm border border-slate-100/20 ${getCategoryBg(task.category)}`}>
+                {task.category}
+              </span>
+            )}
+            {subName ? (
+              <span className="bg-indigo-50/70 text-indigo-950 border border-indigo-100/40 rounded-md px-2 py-0.5 font-sans font-bold text-[11px] shadow-sm truncate max-w-[160px]">
+                📚 {subName}
+              </span>
+            ) : (
+              <span className="text-slate-400 font-mono text-[10px] italic">No Subject</span>
+            )}
           </div>
         );
       },

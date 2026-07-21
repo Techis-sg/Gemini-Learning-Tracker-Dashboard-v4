@@ -9,37 +9,25 @@ import {
   IconRobot as Robot,
   IconUser as UserIcon,
   IconTerminal as Terminal,
-  IconChevronDown as ChevronDown,
-  IconRefresh as RefreshIcon
+  IconChevronDown as ChevronDown
 } from '@tabler/icons-react';
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface AIChatDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  activeDashboardId: string;
-  onRefreshData: () => Promise<void>;
-}
+import { ChatMessage, AIChatDrawerProps } from "../types";
 
 export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData }: AIChatDrawerProps) {
-  const INITIAL_MESSAGE: Message = {
+  const INITIAL_MESSAGE: ChatMessage = {
     role: "assistant",
-    content: "Hello! I am your StudyOS AI Copilot. I can manage your syllabus tracks, add new modules, update tasks on your Kanban, or provide intelligent insights. Try asking me: 'Add a high priority task for tomorrow to study Array Sorting' or 'Mark task ID ... as completed'!"
+    content: "Hello! I am your StudyOS AI Copilot. I can manage your syllabus tracks, add new modules, update tasks on your Kanban, or provide intelligent insights. Try asking me: 'Mark task Stack Implementation as completed and log 5 hours' or 'Add a high priority task for tomorrow to study Array Sorting'!"
   };
 
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [executedActions, setExecutedActions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestions = [
+    'Mark task "Stack Implementation using Arrays and Lists" as done and log 5 hours from June 6 to June 10',
     "Add a high priority task for tomorrow to study Array Sorting",
-    "Mark task ID ... as completed",
     "Create a new Subject block named 'Operating Systems'",
     "Give me an executive summary of my pending tasks",
   ];
@@ -59,7 +47,7 @@ export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData
   const handleSend = async (text: string) => {
     if (!text.trim() || loading) return;
 
-    const userMessage: Message = { role: "user", content: text };
+    const userMessage: ChatMessage = { role: "user", content: text };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
@@ -107,7 +95,7 @@ export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData
 
       if (data.actions && data.actions.length > 0) {
         setExecutedActions(prev => [...prev, ...data.actions]);
-        await onRefreshData();
+        onRefreshData().catch((e) => console.warn("Background workspace refresh error:", e));
       }
     } catch (err: any) {
       setMessages(prev => [
@@ -276,7 +264,7 @@ export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData
           )}
         </div>
 
-        {/* Bottom Input Area - Image 2 Style */}
+        {/* Bottom Input Area */}
         <div className="p-4 border-t border-white/5 bg-zinc-950/80 backdrop-blur-xl shrink-0">
           <form 
             onSubmit={(e) => { e.preventDefault(); handleSend(input); }}
@@ -300,7 +288,7 @@ export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData
             <div className="flex items-center justify-between pt-1 border-t border-white/5">
               <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>StudyOS Copilot v3</span>
+                <span>StudyOS Copilot (Gemini 3.6 Flash)</span>
               </div>
 
               <button
@@ -318,4 +306,3 @@ export function AIChatDrawer({ isOpen, onClose, activeDashboardId, onRefreshData
     </>
   );
 }
-

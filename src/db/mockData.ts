@@ -459,9 +459,18 @@ export const defaultTasks: Task[] = [
 ];
 
 export function getInitialDefaultData() {
+  const formattedTasks = defaultTasks.map((t, idx) => {
+    const taskIdVal = `TSK-${String(idx + 1).padStart(3, "0")}`;
+    return {
+      ...t,
+      taskId: t.taskId || t.taskid || taskIdVal,
+      taskid: t.taskId || t.taskid || taskIdVal,
+    };
+  });
+
   return {
     dashboards: defaultDashboards,
     subjects: defaultSubjects,
-    tasks: defaultTasks,
+    tasks: formattedTasks,
   };
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { IconSparkles as Sparkles, IconBook as BookOpen, IconCalendar as CalendarIcon, IconPlus as Plus, IconTrash as Trash, IconFlame as Flame, IconLogout as LogOut, IconList as List, IconHistory as History, IconSettings as Settings, IconSun as Sun, IconMoon as Moon, IconUpload as Upload, IconLayoutDashboard, IconLayoutKanban, IconReportAnalytics } from '@tabler/icons-react';
 import { Dashboard, Task } from "@/types";
 import { Select, Tooltip } from "@components/ui";
-import { apiFetch, toast } from "@utils/index";
+import { apiFetch, toast, getTodayString, getDateOffsetString } from "@utils/index";
 import { APP_CONFIG } from "@config/app.config";
 import ThemeToggle from "@components/theme/ThemeToggle";
 
@@ -75,19 +75,8 @@ export function SidebarLayout({
 
     if (studyDates.size === 0) return 0;
 
-    const formatDateKey = (dateObj: Date) => {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const d = String(dateObj.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    };
-
-    const today = new Date();
-    const todayKey = formatDateKey(today);
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = formatDateKey(yesterday);
+    const todayKey = getTodayString();
+    const yesterdayKey = getDateOffsetString(-1);
 
     const studiedToday = studyDates.has(todayKey);
     const studiedYesterday = studyDates.has(yesterdayKey);
@@ -96,15 +85,14 @@ export function SidebarLayout({
       return 0;
     }
 
-    // Determine our starting check point (either today if studied today, or yesterday)
-    const checkDate = new Date(studiedToday ? today.getTime() : yesterday.getTime());
+    let offset = studiedToday ? 0 : -1;
     let streakCount = 0;
 
     while (true) {
-      const key = formatDateKey(checkDate);
+      const key = getDateOffsetString(offset);
       if (studyDates.has(key)) {
         streakCount++;
-        checkDate.setDate(checkDate.getDate() - 1);
+        offset--;
       } else {
         break;
       }

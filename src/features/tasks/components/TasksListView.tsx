@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, getStatusColor, formatDate } from "@utils/index";
+import { getPriorityColor, getCategoryBg, getStatusColor, formatDate, getFormattedTaskId, getSubjectName } from "@utils/index";
 import { DataTable } from "@components/ui";
 import { ColumnDef } from "@tanstack/react-table";
 import { IconEye as Eye, IconClock as Clock, IconEdit as Edit2, IconTrash as Trash, IconDotsVerticalFilled as MoreVertical } from "@tabler/icons-react";
@@ -31,12 +31,6 @@ export default function TasksListView({
   onViewDetails,
 }: TasksListViewProps) {
   const [openActionTaskId, setOpenActionTaskId] = useState<string | null>(null);
-
-  const getSubjectName = (subjectId?: string) => {
-    if (!subjectId) return "";
-    const sub = subjects.find((s) => s.id === subjectId);
-    return sub ? sub.name : "";
-  };
 
   const columns = useMemo<ColumnDef<Task>[]>(() => [
     {
@@ -101,8 +95,7 @@ export default function TasksListView({
       size: 90,
       cell: ({ row }) => {
         const task = row.original;
-        const serialFallback = `TSK-${String(row.index + 1 + (currentPage - 1) * itemsPerPage).padStart(3, "0")}`;
-        const displayTaskId = task.taskId || task.taskid || serialFallback;
+        const displayTaskId = getFormattedTaskId(task, row.index + (currentPage - 1) * itemsPerPage);
         return (
           <div className="flex flex-col gap-0.5 font-mono text-[11px] font-bold text-indigo-600">
             <span>{displayTaskId}</span>
@@ -201,7 +194,7 @@ export default function TasksListView({
       size: 180,
       cell: ({ row }) => {
         const task = row.original;
-        const subName = getSubjectName(task.subjectId);
+        const subName = getSubjectName(task.subjectId, subjects);
         return (
           <div className="flex flex-col gap-1 items-start max-w-[170px]">
             {task.category && (

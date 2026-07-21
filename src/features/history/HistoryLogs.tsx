@@ -17,8 +17,8 @@ function ActiveSessionStopwatch() {
   const [activeSessionTime, setActiveSessionTime] = useState("00:00:00");
 
   useEffect(() => {
-    const startTimestampStr = localStorage.getItem("portal_session_start");
-    const sessionNumStr = localStorage.getItem("portal_active_session_number") || "142";
+    const startTimestampStr = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.SESSION_START);
+    const sessionNumStr = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_NUMBER) || "142";
     setActiveSessionNum(sessionNumStr);
 
     const startTime = startTimestampStr ? parseInt(startTimestampStr, 10) : Date.now();

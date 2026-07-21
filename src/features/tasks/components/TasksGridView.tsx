@@ -1,6 +1,6 @@
 import React from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, getStatusColor, formatToDisplayDate } from "@utils/index";
+import { getPriorityColor, getCategoryBg, getStatusColor, formatToDisplayDate, getFormattedTaskId, getSubjectName } from "@utils/index";
 import { Tooltip } from "@components/ui";
 import { IconClock as Clock, IconEdit as Edit2, IconTrash as Trash, IconEye as Eye } from "@tabler/icons-react";
 
@@ -27,12 +27,6 @@ export default function TasksGridView({
   onDeleteTask,
   onViewDetails,
 }: TasksGridViewProps) {
-  const getSubjectName = (subjectId?: string) => {
-    if (!subjectId) return "";
-    const sub = subjects.find((s) => s.id === subjectId);
-    return sub ? sub.name : "";
-  };
-
   const totalPages = Math.ceil(tasks.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedTasks = tasks.slice(startIndex, startIndex + itemsPerPage);
@@ -46,8 +40,7 @@ export default function TasksGridView({
           </div>
         ) : (
           paginatedTasks.map((task, idx) => {
-            const serialFallback = `TSK-${String(startIndex + idx + 1).padStart(3, "0")}`;
-            const displayTaskId = task.taskId || task.taskid || serialFallback;
+            const displayTaskId = getFormattedTaskId(task, startIndex + idx);
 
             return (
               <div
@@ -78,7 +71,7 @@ export default function TasksGridView({
                   
                   {task.subjectId && (
                     <div className="text-[10px] font-bold text-slate-600 mb-2 truncate bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/20 inline-block font-mono">
-                      📚 {getSubjectName(task.subjectId)}
+                      📚 {getSubjectName(task.subjectId, subjects)}
                     </div>
                   )}
 

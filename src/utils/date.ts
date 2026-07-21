@@ -68,6 +68,18 @@ export function isDateToday(dateStr: string | null | undefined): boolean {
 }
 
 /**
+ * Returns a date string in 'YYYY-MM-DD' format with a specific day offset relative to today
+ */
+export function getDateOffsetString(daysOffset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysOffset);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Formats a Date object to "HH:MM:SS" (24-hour format)
  */
 export function format24h(d: Date): string {

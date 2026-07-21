@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { IconUpload as Upload, IconFileText as FileText, IconMagnet as ImageIcon, IconFileCode as FileCode, IconFile as File, IconTrash as Trash2, IconPaperclip as Paperclip, IconCheck as Check, IconSearch as Search, IconBook as BookOpen, IconCalendar as Calendar, IconSparkles as Sparkles, IconDownload as Download, IconAlertCircle as AlertCircle } from '@tabler/icons-react';
 import { Task, Subject } from "@/types";
-import { toast, Modal } from "@utils/index";
+import { toast, Modal, safeJsonParse } from "@utils/index";
 import { Tooltip } from "@components/ui";
-import { VALIDATION_LIMITS } from "@config/app.config";
+import { VALIDATION_LIMITS, STORAGE_KEYS } from "@config/app.config";
 
 interface UploadedFile {
   id: string;
@@ -31,20 +31,14 @@ export function UploadsPage({ tasks, subjects }: UploadsPageProps) {
   
   // Loading custom files from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("portal_custom_uploads");
-    if (saved) {
-      try {
-        setCustomFiles(JSON.parse(saved));
-      } catch (e) {
-        console.error("Error loading custom uploads:", e);
-      }
-    }
+    const saved = localStorage.getItem(STORAGE_KEYS.CUSTOM_FILES);
+    setCustomFiles(safeJsonParse<UploadedFile[]>(saved, []));
   }, []);
 
   // Save custom files to localStorage
   const saveCustomFiles = (updated: UploadedFile[]) => {
     setCustomFiles(updated);
-    localStorage.setItem("portal_custom_uploads", JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_FILES, JSON.stringify(updated));
   };
 
   // Compile files: custom uploads + task attachments

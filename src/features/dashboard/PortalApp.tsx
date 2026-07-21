@@ -13,7 +13,7 @@ import {
   Target
 } from "lucide-react";
 import { Dashboard, Subject, Task } from "@/types";
-import { apiFetch, toast, getSyncedSubjects } from "@utils/index";
+import { apiFetch, toast, getSyncedSubjects, getTodayString, getDateOffsetString } from "@utils/index";
 
 // Components & layouts
 import SidebarLayout from "@layouts/SidebarLayout";
@@ -533,13 +533,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                 {/* Dynamic Study Space Cards & Timetables */}
                 {(() => {
                   // Today's date matching
-                  const formatDateLocal = (d: Date) => {
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, "0");
-                    const r = String(d.getDate()).padStart(2, "0");
-                    return `${y}-${m}-${r}`;
-                  };
-                  const todayLocalStr = formatDateLocal(new Date());
+                  const todayLocalStr = getTodayString();
                   const todayTasks = currentTasks.filter(t => t.date === todayLocalStr);
 
                   // Streak calculation
@@ -561,11 +555,8 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                     });
                     if (studyDates.size === 0) return 0;
 
-                    const today = new Date();
-                    const todayKey = formatDateLocal(today);
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const yesterdayKey = formatDateLocal(yesterday);
+                    const todayKey = getTodayString();
+                    const yesterdayKey = getDateOffsetString(-1);
 
                     const studiedToday = studyDates.has(todayKey);
                     const studiedYesterday = studyDates.has(yesterdayKey);
@@ -574,13 +565,13 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                       return 0;
                     }
 
-                    const checkDate = new Date(studiedToday ? today.getTime() : yesterday.getTime());
+                    let offset = studiedToday ? 0 : -1;
                     let streakCount = 0;
                     while (true) {
-                      const key = formatDateLocal(checkDate);
+                      const key = getDateOffsetString(offset);
                       if (studyDates.has(key)) {
                         streakCount++;
-                        checkDate.setDate(checkDate.getDate() - 1);
+                        offset--;
                       } else {
                         break;
                       }
@@ -602,9 +593,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                     : 0;
 
                   // Top 5 upcoming not started tasks (starting from tomorrow)
-                  const tomorrowDateObj = new Date();
-                  tomorrowDateObj.setDate(tomorrowDateObj.getDate() + 1);
-                  const tomorrowLocalStr = formatDateLocal(tomorrowDateObj);
+                  const tomorrowLocalStr = getDateOffsetString(1);
 
                   const upcomingTasks = currentTasks
                     .filter(t => t.status === "Not Started" && t.date >= tomorrowLocalStr)

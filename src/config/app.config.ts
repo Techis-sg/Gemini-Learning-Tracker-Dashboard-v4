@@ -12,6 +12,10 @@ export const STORAGE_KEYS = {
   USER_ID: "portal_user_id",
   ACTIVE_SESSION_NUMBER: "portal_active_session_number",
   SESSION_START: "portal_session_start",
+  CUSTOM_FILES: "custom_uploads_data",
+  HISTORY_LOGS: "history_logs",
+  SUBJECTS: "syllabus_subjects",
+  TASKS: "syllabus_tasks",
 } as const;
 
 export const PAGINATION_CONFIG = {

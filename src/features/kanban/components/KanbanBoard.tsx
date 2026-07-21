@@ -3,7 +3,7 @@ import { Task, Subject } from "@/types";
 import { IconClock as Clock, IconPlus as Plus, IconTrash as Trash, IconEdit as Edit2, IconGripVertical as GripVertical } from '@tabler/icons-react';
 import { motion } from "motion/react";
 import { Tooltip } from "@components/ui";
-import { getTodayString } from "@utils/index";
+import { getTodayString, getFormattedTaskId, formatToDisplayDate } from "@utils/index";
 
 export function getKanbanColumnForTask(task: Task, todayStr: string): Task["boardColumnId"] {
   if (task.status === "Completed") return "completed";
@@ -245,7 +245,7 @@ export default function KanbanBoard({
               ) : (
                 colTasks.map((task, idx) => {
                   const isBeingDragged = draggedTaskId === task.id;
-                  const displayTaskId = task.taskId || task.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+                  const displayTaskId = getFormattedTaskId(task, idx);
 
                   return (
                     <div

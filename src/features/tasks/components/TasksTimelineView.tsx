@@ -1,6 +1,6 @@
 import React from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, formatToDisplayDate } from "@utils/index";
+import { getPriorityColor, getCategoryBg, formatToDisplayDate, getFormattedTaskId, getSubjectName } from "@utils/index";
 
 interface TasksTimelineViewProps {
   tasks: Task[];
@@ -11,12 +11,6 @@ export default function TasksTimelineView({
   tasks,
   subjects,
 }: TasksTimelineViewProps) {
-  const getSubjectName = (subjectId?: string) => {
-    if (!subjectId) return "";
-    const sub = subjects.find((s) => s.id === subjectId);
-    return sub ? sub.name : "";
-  };
-
   return (
     <div className="space-y-4">
       <div className="bg-amber-50/50 border border-amber-100 p-3 rounded-xl font-mono text-xs font-semibold text-amber-800">
@@ -27,7 +21,7 @@ export default function TasksTimelineView({
           <div className="text-slate-400 font-mono italic">No targets scheduled.</div>
         ) : (
           tasks.map((task, idx) => {
-            const displayTaskId = task.taskId || task.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+            const displayTaskId = getFormattedTaskId(task, idx);
 
             return (
               <div key={task.id} className="relative animate-in fade-in duration-150">
@@ -57,7 +51,7 @@ export default function TasksTimelineView({
                   <h4 className="text-md font-bold text-slate-800 mb-1">{task.title}</h4>
                   {task.subjectId && (
                     <span className="text-[10px] font-bold text-slate-500 font-mono bg-indigo-50/20 px-1.5 py-0.5 rounded-md">
-                      📚 Subject: {getSubjectName(task.subjectId)}
+                      📚 Subject: {getSubjectName(task.subjectId, subjects)}
                     </span>
                   )}
                   {task.description && (

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Task, Subject } from "@/types";
 import { IconChevronLeft as ChevronLeft, IconChevronRight as ChevronRight, IconCalendar as CalendarIcon, IconClock as Clock, IconEdit as Edit2, IconTrash as Trash, IconPlus as Plus, IconFileText as FileText, IconCircle2 as CheckCircle2 } from '@tabler/icons-react';
 import { Tooltip } from "@components/ui";
+import { getFormattedTaskId } from "@utils/index";
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -169,7 +170,7 @@ export default function CalendarView({
             {dayTasks.length > 0 && (
               <div className="flex flex-col gap-0.5 max-h-[42px] overflow-hidden">
                 {dayTasks.slice(0, 2).map((t, idx) => {
-                  const taskIdVal = t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+                  const taskIdVal = getFormattedTaskId(t, idx);
                   return (
                     <div
                       key={t.id}
@@ -342,7 +343,7 @@ export default function CalendarView({
             ) : (
               selectedDateTasks.map((task, idx) => {
                 const isCompleted = task.status === "Completed";
-                const displayTaskId = task.taskId || task.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+                const displayTaskId = getFormattedTaskId(task, idx);
                 
                 const handleToggle = () => {
                   const nextStatus = isCompleted ? "Not Started" : "Completed";

@@ -1,15 +1,10 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Student Syllabus & Target Study Portal",
-  "theme": "mint",
   "colors": {
     "primary": "#4F46E5",
     "light": "#818CF8",
-    "dark": "#3730A3",
-    "background": {
-      "light": "#F8FAFC",
-      "dark": "#0F172A"
-    }
+    "dark": "#3730A3"
   },
   "topbarLinks": [
     {
@@ -21,38 +16,40 @@
     "name": "Launch Portal",
     "url": "https://ais-pre-kzegystruzlm6vbjagyd3m-314235042320.asia-southeast1.run.app"
   },
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "README",
-        "DEVELOPMENT_GUIDE"
-      ]
-    },
-    {
-      "group": "Architecture & Engineering",
-      "pages": [
-        "ARCHITECTURE",
-        "PROJECT_STRUCTURE",
-        "TECHNICAL_OVERVIEW"
-      ]
-    },
-    {
-      "group": "Workflows & Data Flow",
-      "pages": [
-        "USER_FLOWS",
-        "STATE_MANAGEMENT",
-        "ROUTING"
-      ]
-    },
-    {
-      "group": "Specifications & Security",
-      "pages": [
-        "CONFIGURATION",
-        "SECURITY"
-      ]
-    }
-  ],
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "README",
+          "DEVELOPMENT_GUIDE"
+        ]
+      },
+      {
+        "group": "Architecture & Engineering",
+        "pages": [
+          "ARCHITECTURE",
+          "PROJECT_STRUCTURE",
+          "TECHNICAL_OVERVIEW"
+        ]
+      },
+      {
+        "group": "Workflows & Data Flow",
+        "pages": [
+          "USER_FLOWS",
+          "STATE_MANAGEMENT",
+          "ROUTING"
+        ]
+      },
+      {
+        "group": "Specifications & Security",
+        "pages": [
+          "CONFIGURATION",
+          "SECURITY"
+        ]
+      }
+    ]
+  },
   "footerSocials": {
     "github": "https://github.com"
   }

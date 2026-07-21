@@ -17,40 +17,39 @@
     "name": "Launch Portal",
     "url": "https://ais-pre-kzegystruzlm6vbjagyd3m-314235042320.asia-southeast1.run.app"
   },
-  "navigation": {
-    "groups": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "README",
-          "DEVELOPMENT_GUIDE"
-        ]
-      },
-      {
-        "group": "Architecture & Engineering",
-        "pages": [
-          "ARCHITECTURE",
-          "PROJECT_STRUCTURE",
-          "TECHNICAL_OVERVIEW"
-        ]
-      },
-      {
-        "group": "Workflows & Data Flow",
-        "pages": [
-          "USER_FLOWS",
-          "STATE_MANAGEMENT",
-          "ROUTING"
-        ]
-      },
-      {
-        "group": "Specifications & Security",
-        "pages": [
-          "CONFIGURATION",
-          "SECURITY"
-        ]
-      }
-    ]
-  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "README",
+        "DEVELOPMENT_GUIDE",
+        "MINTLIFY_SETUP"
+      ]
+    },
+    {
+      "group": "Architecture & Engineering",
+      "pages": [
+        "ARCHITECTURE",
+        "PROJECT_STRUCTURE",
+        "TECHNICAL_OVERVIEW"
+      ]
+    },
+    {
+      "group": "Workflows & Data Flow",
+      "pages": [
+        "USER_FLOWS",
+        "STATE_MANAGEMENT",
+        "ROUTING"
+      ]
+    },
+    {
+      "group": "Specifications & Security",
+      "pages": [
+        "CONFIGURATION",
+        "SECURITY"
+      ]
+    }
+  ],
   "footerSocials": {
     "github": "https://github.com"
   }

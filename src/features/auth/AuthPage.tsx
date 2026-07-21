@@ -11,7 +11,7 @@ interface AuthPageProps {
 export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleOAuth = async () => {
+  const handleGoogleOAuth = async (forceConsent = false) => {
     setLoading(true);
     const toastId = toast.loading("Launching secure Google Accounts portal...");
 
@@ -21,9 +21,14 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
       let avatarUrl: string | undefined = undefined;
 
       try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const shouldForceConsent =
+          forceConsent ||
+          searchParams.get("error") === "missing_refresh_token" ||
+          searchParams.get("force") === "true";
+
         googleProvider.setCustomParameters({
-          prompt: "consent select_account",
-          access_type: "offline",
+          prompt: shouldForceConsent ? "consent select_account" : "select_account",
         });
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
@@ -126,7 +131,7 @@ export default function AuthPage({ onLoginSuccess }: AuthPageProps) {
               {/* Google Button */}
               <button
                 id="google-oauth-btn"
-                onClick={handleGoogleOAuth}
+                onClick={() => handleGoogleOAuth()}
                 disabled={loading}
                 className="relative group flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-medium text-sm transition-all duration-200 shadow-md cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
               >

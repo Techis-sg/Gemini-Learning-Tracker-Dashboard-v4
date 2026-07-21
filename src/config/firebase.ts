@@ -23,8 +23,7 @@ googleProvider.addScope("openid");
 googleProvider.addScope("email");
 googleProvider.addScope("profile");
 googleProvider.setCustomParameters({
-  prompt: "consent select_account",
-  access_type: "offline",
+  prompt: "select_account",
 });
 
 export { signInWithPopup };

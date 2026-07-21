@@ -1,5 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
   "name": "Student Syllabus & Target Study Portal",
   "colors": {
     "primary": "#4F46E5",

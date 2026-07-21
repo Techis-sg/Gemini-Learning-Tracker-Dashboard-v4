@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account profile details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "provider": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "provider", "email", "name"]
+    },
+    "Dashboard": {
+      "title": "Dashboard",
+      "description": "A study plan tracker dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isDefault": { "type": "boolean" },
+        "target": { "type": "string" },
+        "statusOverview": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "A subject or learning module associated with a dashboard",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "block": { "type": "string", "enum": ["Block 1 - GATE", "Block 2 - Placements", "DSA", "General"] },
+        "daysPlanned": { "type": "number" },
+        "timeline": { "type": "string" },
+        "status": { "type": "string", "enum": ["Not Started", "In Progress", "Completed"] },
+        "percentage": { "type": "number" },
+        "pendingTopics": { "type": "string" },
+        "completedTopics": { "type": "string" },
+        "weightage": { "type": "string" },
+        "resource": { "type": "string" }
+      },
+      "required": ["id", "name", "block"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A daily syllabus target or study task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "dashboardId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "category": { "type": "string", "enum": ["Block 1 - GATE", "Block 2 - Placements", "DSA", "General"] },
+        "status": { "type": "string", "enum": ["Not Started", "In Progress", "Completed"] },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "notes": { "type": "string" },
+        "timeSpentMinutes": { "type": "number" },
+        "boardColumnId": { "type": "string", "enum": ["todo", "in_progress", "completed"] }
+      },
+      "required": ["id", "dashboardId", "title", "date"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "User portal configuration settings",
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string" },
+        "mobile": { "type": "string" },
+        "addressLine1": { "type": "string" },
+        "addressLine2": { "type": "string" },
+        "bio": { "type": "string" },
+        "theme": { "type": "string" },
+        "defaultTab": { "type": "string" },
+        "fontFamily": { "type": "string" },
+        "accentColor": { "type": "string" },
+        "hiddenMenus": { "type": "array" },
+        "customCss": { "type": "string" },
+        "emailNotifications": { "type": "boolean" },
+        "pushNotifications": { "type": "boolean" },
+        "weeklyDigests": { "type": "boolean" },
+        "isPublicProfile": { "type": "boolean" },
+        "twoFactorEnabled": { "type": "boolean" }
+      }
+    },
+    "HistoryLog": {
+      "title": "HistoryLog",
+      "description": "An activity or system history log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "action": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "sessionNumber": { "type": "number" },
+        "loggedInTime": { "type": "string" },
+        "loggedOutTime": { "type": "string" }
+      },
+      "required": ["id", "type", "action", "description", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    },
+    "/users/{userId}/dashboards/{dashboardId}": {
+      "schema": "Dashboard",
+      "description": "Syllabus planner dashboards owned by the user"
+    },
+    "/users/{userId}/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Academic subjects under this user's planner"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Detailed study tasks and logged sessions"
+    },
+    "/users/{userId}/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "User custom configurations"
+    },
+    "/users/{userId}/history/{logId}": {
+      "schema": "HistoryLog",
+      "description": "Activity log history"
+    }
+  }
+}

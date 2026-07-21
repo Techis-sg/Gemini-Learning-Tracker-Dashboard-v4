@@ -1,0 +1,6 @@
+{
+  "name": "Study Buddy",
+  "description": "Your ultimate full-stack companion to track, visualize, and conquer your syllabus and study goals. Tailored for any student or learner managing multiple study tracks, exams, and daily tasks with automated progress insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (default-deny catch-all)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY HELPERS ---
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- ENTITY VALIDATION BLUEPRINTS ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'provider', 'email', 'name'])
+        && data.id is string && data.id.size() <= 128
+        && data.provider is string && data.provider.size() <= 100
+        && data.email is string && data.email.size() <= 256
+        && data.name is string && data.name.size() <= 256
+        && (!data.keys().hasAny(['avatarUrl']) || data.avatarUrl is string)
+        && (!data.keys().hasAny(['createdAt']) || data.createdAt is string);
+    }
+
+    function isValidDashboard(data) {
+      return data.keys().hasAll(['id', 'name'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 256
+        && (!data.keys().hasAny(['description']) || data.description is string)
+        && (!data.keys().hasAny(['createdAt']) || data.createdAt is string)
+        && (!data.keys().hasAny(['isDefault']) || data.isDefault is bool)
+        && (!data.keys().hasAny(['target']) || data.target is string)
+        && (!data.keys().hasAny(['statusOverview']) || data.statusOverview is string);
+    }
+
+    function isValidSubject(data) {
+      return data.keys().hasAll(['id', 'name', 'block'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 256
+        && data.block is string && data.block.size() <= 100
+        && (!data.keys().hasAny(['daysPlanned']) || data.daysPlanned is number)
+        && (!data.keys().hasAny(['timeline']) || data.timeline is string)
+        && (!data.keys().hasAny(['status']) || data.status is string)
+        && (!data.keys().hasAny(['percentage']) || data.percentage is number)
+        && (!data.keys().hasAny(['pendingTopics']) || data.pendingTopics is string)
+        && (!data.keys().hasAny(['completedTopics']) || data.completedTopics is string)
+        && (!data.keys().hasAny(['weightage']) || data.weightage is string)
+        && (!data.keys().hasAny(['resource']) || data.resource is string);
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'dashboardId', 'title', 'date'])
+        && data.id is string && data.id.size() <= 128
+        && data.dashboardId is string && data.dashboardId.size() <= 128
+        && data.title is string && data.title.size() <= 256
+        && data.date is string && data.date.size() <= 100
+        && (!data.keys().hasAny(['subjectId']) || data.subjectId is string)
+        && (!data.keys().hasAny(['description']) || data.description is string)
+        && (!data.keys().hasAny(['category']) || data.category is string)
+        && (!data.keys().hasAny(['status']) || data.status is string)
+        && (!data.keys().hasAny(['priority']) || data.priority is string)
+        && (!data.keys().hasAny(['notes']) || data.notes is string)
+        && (!data.keys().hasAny(['timeSpentMinutes']) || data.timeSpentMinutes is number)
+        && (!data.keys().hasAny(['boardColumnId']) || data.boardColumnId is string)
+        && (!data.keys().hasAny(['timeLogs']) || data.timeLogs is list)
+        && (!data.keys().hasAny(['attachments']) || data.attachments is list);
+    }
+
+    function isValidSettings(data) {
+      return (!data.keys().hasAny(['firstName']) || (data.firstName is string && data.firstName.size() <= 256))
+        && (!data.keys().hasAny(['lastName']) || (data.lastName is string && data.lastName.size() <= 256))
+        && (!data.keys().hasAny(['email']) || (data.email is string && data.email.size() <= 256))
+        && (!data.keys().hasAny(['mobile']) || (data.mobile is string && data.mobile.size() <= 100))
+        && (!data.keys().hasAny(['addressLine1']) || (data.addressLine1 is string && data.addressLine1.size() <= 512))
+        && (!data.keys().hasAny(['addressLine2']) || (data.addressLine2 is string && data.addressLine2.size() <= 512))
+        && (!data.keys().hasAny(['bio']) || (data.bio is string && data.bio.size() <= 2048))
+        && (!data.keys().hasAny(['theme']) || (data.theme is string && data.theme.size() <= 100))
+        && (!data.keys().hasAny(['defaultTab']) || (data.defaultTab is string && data.defaultTab.size() <= 100))
+        && (!data.keys().hasAny(['fontFamily']) || (data.fontFamily is string && data.fontFamily.size() <= 100))
+        && (!data.keys().hasAny(['accentColor']) || (data.accentColor is string && data.accentColor.size() <= 100))
+        && (!data.keys().hasAny(['hiddenMenus']) || (data.hiddenMenus is list && data.hiddenMenus.size() <= 100))
+        && (!data.keys().hasAny(['customCss']) || (data.customCss is string && data.customCss.size() <= 8192))
+        && (!data.keys().hasAny(['emailNotifications']) || data.emailNotifications is bool)
+        && (!data.keys().hasAny(['pushNotifications']) || data.pushNotifications is bool)
+        && (!data.keys().hasAny(['weeklyDigests']) || data.weeklyDigests is bool)
+        && (!data.keys().hasAny(['isPublicProfile']) || data.isPublicProfile is bool)
+        && (!data.keys().hasAny(['twoFactorEnabled']) || data.twoFactorEnabled is bool);
+    }
+
+    function isValidHistoryLog(data) {
+      return data.keys().hasAll(['id', 'type', 'action', 'description', 'timestamp'])
+        && data.id is string && data.id.size() <= 128
+        && data.type is string && data.type.size() <= 100
+        && data.action is string && data.action.size() <= 100
+        && data.description is string && data.description.size() <= 1000
+        && data.timestamp is string && data.timestamp.size() <= 100
+        && (!data.keys().hasAny(['durationMinutes']) || data.durationMinutes is number)
+        && (!data.keys().hasAny(['sessionNumber']) || data.sessionNumber is number)
+        && (!data.keys().hasAny(['loggedInTime']) || data.loggedInTime is string)
+        && (!data.keys().hasAny(['loggedOutTime']) || data.loggedOutTime is string);
+    }
+
+    // --- SECURED PATH MATCHING ---
+    match /users/{userId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidUser(incoming());
+    }
+
+    match /users/{userId}/dashboards/{dashboardId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidDashboard(incoming());
+    }
+
+    match /users/{userId}/subjects/{subjectId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidSubject(incoming());
+    }
+
+    match /users/{userId}/tasks/{taskId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidTask(incoming());
+    }
+
+    match /users/{userId}/settings/{settingId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidSettings(incoming());
+    }
+
+    match /users/{userId}/history/{logId} {
+      allow read, delete: if isValidId(userId);
+      allow create, update: if isValidId(userId) && isValidHistoryLog(incoming());
+    }
+  }
+}
+

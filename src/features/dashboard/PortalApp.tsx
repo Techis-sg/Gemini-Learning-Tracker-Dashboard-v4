@@ -761,8 +761,9 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
 
                       {/* Right Side: Inspiration (Motivation) Card FIRST, then Upcoming Schedule Card SECOND */}
                       <div className="space-y-6">
-                        {/* Daily Study Inspiration Card (Motivation Card First) */}
+                        {/* Daily Study Inspiration Card / My Motivation Message */}
                         {(() => {
+                          const customMotivation = appSettings?.userMotivation || user?.motivation;
                           const dailyQuote = STUDY_QUOTES[new Date().getDate() % STUDY_QUOTES.length];
                           return (
                             <div className="bg-gradient-to-br from-indigo-50/20 via-purple-50/10 to-white border border-slate-100 p-6 rounded-[24px] shadow-sm relative overflow-hidden group">
@@ -770,14 +771,22 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                                 <SparklesIcon className="w-16 h-16 text-indigo-400" />
                               </div>
                               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50/60 px-2.5 py-1 rounded-md">
-                                ✨ Daily Study Inspiration
+                                ✨ My Motivation Message
                               </span>
-                              <p className="text-xs font-bold text-slate-700 italic leading-relaxed mt-4">
-                                "{dailyQuote.text}"
-                              </p>
-                              <p className="text-[10px] font-mono font-bold text-indigo-600 mt-2">
-                                — {dailyQuote.author}
-                              </p>
+                              {customMotivation ? (
+                                <p className="text-xs font-bold text-slate-800 leading-relaxed mt-4 bg-indigo-50/40 p-3 rounded-xl border border-indigo-100/60">
+                                  "{customMotivation}"
+                                </p>
+                              ) : (
+                                <>
+                                  <p className="text-xs font-bold text-slate-700 italic leading-relaxed mt-4">
+                                    "{dailyQuote.text}"
+                                  </p>
+                                  <p className="text-[10px] font-mono font-bold text-indigo-600 mt-2">
+                                    — {dailyQuote.author}
+                                  </p>
+                                </>
+                              )}
                             </div>
                           );
                         })()}

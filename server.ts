@@ -18,6 +18,8 @@ import {
   getUserSettings,
   addHistoryLog,
   getHistoryLogs,
+  saveFeedback,
+  getFeedbacks,
 } from "./src/db/index.js";
 import { handleChatbotRequest } from "./src/features/chatbot/server/chatbotAgent.js";
 import { Dashboard, Subject, Task, TimeLog, TaskAttachment } from "./src/types";
@@ -669,6 +671,78 @@ app.post("/api/settings", async (req, res) => {
   } catch (error: any) {
     console.error("Save settings error:", error);
     res.status(500).json({ error: "Failed to save settings: " + error.message });
+  }
+});
+
+// --- Feedback API ---
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const userId = (req.headers["x-user-id"] as string) || "anonymous";
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: "Name, email, and message are required fields." });
+    }
+
+    const trimmedMsg = String(message).trim();
+
+    // 1. Basic security check & sanitization
+    const sanitizedMsg = trimmedMsg.replace(/<[^>]*>?/gm, "");
+
+    // Check alphanumeric + spaces
+    if (!/^[a-zA-Z0-9\s]+$/.test(sanitizedMsg)) {
+      return res.status(400).json({ error: "Only alphanumeric characters and spaces are allowed in feedback message." });
+    }
+
+    const wordCount = sanitizedMsg.split(/\s+/).filter(Boolean).length;
+    if (sanitizedMsg.length < 5 || sanitizedMsg.length > 255 || wordCount < 2) {
+      return res.status(400).json({ error: "Message must be 5-255 characters long and contain at least 2 words." });
+    }
+
+    // 2. Parse message to AI for one-word tag/flag categorization
+    let aiTag = "Constructive";
+    if (ai) {
+      try {
+        const prompt = `Analyze the following user feedback message for an online study portal and categorize it with EXACTLY ONE word tag or flag (for example: Good, Bad, Worst, Constructive, Bug, Malicious, Feature, Excellent, Spam, Neutral). Respond with ONLY that single word tag, with no punctuation or extra text.\n\nFeedback message: "${sanitizedMsg}"`;
+        
+        const aiRes = await generateContentWithFallback({
+          contents: prompt,
+          config: {
+            temperature: 0.1,
+            maxOutputTokens: 10,
+          },
+        });
+
+        const rawText = aiRes.response?.text()?.trim() || "";
+        const cleanTag = rawText.replace(/[^a-zA-Z0-9]/g, "").trim();
+        if (cleanTag) {
+          aiTag = cleanTag.charAt(0).toUpperCase() + cleanTag.slice(1).toLowerCase();
+        }
+      } catch (aiErr) {
+        console.warn("AI tag classification fallback due to error:", aiErr);
+      }
+    }
+
+    // 3. Save to DB with schema: user_id, user_email, user_name, date, feedback_message, ai_tag
+    const feedbackDoc = {
+      user_id: userId,
+      user_email: String(email).trim(),
+      user_name: String(name).trim(),
+      date: new Date().toISOString(),
+      feedback_message: sanitizedMsg,
+      ai_tag: aiTag,
+    };
+
+    await saveFeedback(feedbackDoc);
+
+    res.json({
+      success: true,
+      message: "Feedback submitted successfully.",
+      ai_tag: aiTag,
+    });
+  } catch (err: any) {
+    console.error("Feedback submission error:", err);
+    res.status(500).json({ error: "Failed to submit feedback: " + err.message });
   }
 });
 

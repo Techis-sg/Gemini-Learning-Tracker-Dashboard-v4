@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { IconSparkles as Sparkles, IconBook as BookOpen, IconCalendar as CalendarIcon, IconPlus as Plus, IconTrash as Trash, IconFlame as Flame, IconLogout as LogOut, IconList as List, IconHistory as History, IconSettings as Settings, IconSun as Sun, IconMoon as Moon, IconUpload as Upload, IconLayoutDashboard, IconLayoutKanban, IconReportAnalytics } from '@tabler/icons-react';
+import { IconSparkles as Sparkles, IconBook as BookOpen, IconCalendar as CalendarIcon, IconPlus as Plus, IconTrash as Trash, IconFlame as Flame, IconLogout as LogOut, IconList as List, IconHistory as History, IconSettings as Settings, IconSun as Sun, IconMoon as Moon, IconUpload as Upload, IconLayoutDashboard, IconLayoutKanban, IconReportAnalytics, IconMessageReport, IconX } from '@tabler/icons-react';
 import { Dashboard, Task } from "@/types";
 import { Select, Tooltip } from "@components/ui";
 import { apiFetch, toast, getTodayString, getDateOffsetString } from "@utils/index";
 import { APP_CONFIG } from "@config/app.config";
 import ThemeToggle from "@components/theme/ThemeToggle";
+import { FeedbackModal } from "@components/feedback/FeedbackModal";
 
 interface SidebarLayoutProps {
   user: any;
@@ -40,6 +41,21 @@ export function SidebarLayout({
   onSettingsUpdate,
 }: SidebarLayoutProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  useEffect(() => {
+    const isDismissed = sessionStorage.getItem("feedback_dismissed_session") === "true";
+    if (isDismissed) {
+      setFeedbackDismissed(true);
+    }
+  }, []);
+
+  const handleDismissFeedback = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    sessionStorage.setItem("feedback_dismissed_session", "true");
+    setFeedbackDismissed(true);
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -204,10 +220,36 @@ export function SidebarLayout({
           </div>
         )}
 
-        {/* 2. Import AI Planner Button */}
+        {/* 2. Give Feedback Button (Blinking with cross icon for session dismiss) */}
+        {!feedbackDismissed && (
+          <div className="relative group">
+            <button
+              onClick={() => setShowFeedbackModal(true)}
+              className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-[11px] font-bold uppercase tracking-wider flex items-center justify-between shadow-sm rounded-xl transition-all cursor-pointer animate-pulse hover:animate-none group-hover:scale-[1.01] active:scale-95 pr-8"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <IconMessageReport className="w-4 h-4 shrink-0 text-amber-300" />
+                <span className="truncate">Give Feedback</span>
+              </div>
+              <span className="bg-white/20 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase shrink-0">
+                Direct
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDismissFeedback}
+              title="Dismiss for this session"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-white/80 hover:text-white hover:bg-black/20 rounded-lg transition-colors cursor-pointer z-10"
+            >
+              <IconX className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* 3. Import AI Planner Button */}
         <button
           onClick={onOpenAIImporter}
-          className="w-full px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm rounded-xl transition-all cursor-pointer animate-pulse"
+          className="w-full px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-sm rounded-xl transition-all cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 fill-white" />
           Import AI Planner
@@ -270,6 +312,14 @@ export function SidebarLayout({
           )}
         </div>
       </div>
+
+      {/* Direct Feedback Modal */}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        user={user}
+        onSuccessRedirect={() => onTabClick("dashboard")}
+      />
     </aside>
   );
 }

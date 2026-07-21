@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { IconUser as User, IconShield as Shield, IconBell as Bell, IconSpider as Sliders, IconDatabase as Database, IconTrash as Trash2, IconCircle as CheckCircle, IconGavel as Save, IconLoader2 as Loader2, IconLock as Lock, IconDownload as Download, IconAlertTriangle as AlertTriangle, IconRefresh as RefreshCw, IconPalette as Palette, IconEye as Type } from '@tabler/icons-react';
+import { IconUser as User, IconShield as Shield, IconBell as Bell, IconSpider as Sliders, IconDatabase as Database, IconTrash as Trash2, IconCircle as CheckCircle, IconGavel as Save, IconLoader2 as Loader2, IconLock as Lock, IconDownload as Download, IconAlertTriangle as AlertTriangle, IconRefresh as RefreshCw, IconPalette as Palette, IconEye as Type, IconSparkles as Sparkles } from '@tabler/icons-react';
 import { toast } from "react-hot-toast";
 import { apiFetch } from "@utils/index";
 import { Select, Tooltip } from "@components/ui";
@@ -43,6 +43,7 @@ export function ProfileSettings({
     fontFamily: "Inter",
     fontSize: "16px",
     accentColor: "#6366f1",
+    userMotivation: user?.motivation || "",
     hiddenMenus: [] as string[],
     customCss: "",
     emailNotifications: true,
@@ -581,6 +582,24 @@ export function ProfileSettings({
 
         {activeSubTab === "portal" && (
           <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                User Motivation Message (Optional)
+              </h3>
+              <p className="text-[10px] text-slate-400 font-mono mb-2">
+                Write your custom daily motivation message or study mantra. On save, this message will reflect in your Dashboard self-motivation card "My Motivation Message".
+              </p>
+              <input
+                type="text"
+                name="userMotivation"
+                value={formData.userMotivation || ""}
+                onChange={handleChange}
+                placeholder="e.g. Consistency builds excellence. Keep pushing forward!"
+                className="w-full text-xs font-bold px-3.5 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all text-slate-800"
+              />
+            </div>
+
             <div>
               <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
                 <Palette className="w-4 h-4 text-indigo-500" />

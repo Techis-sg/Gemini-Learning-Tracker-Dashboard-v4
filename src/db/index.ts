@@ -506,3 +506,42 @@ export async function getHistoryLogs(userId: string | undefined): Promise<any[]>
   }
 }
 
+/**
+ * Save user feedback record to Firestore
+ */
+export async function saveFeedback(feedback: {
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  date: string;
+  feedback_message: string;
+  ai_tag: string;
+}): Promise<void> {
+  const normUid = getNormalizedUserId(feedback.user_id);
+  const feedbackId = "fb_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+  const ref = doc(db, "feedbacks", feedbackId);
+  try {
+    await safeSetDoc(ref, { id: feedbackId, ...feedback }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `feedbacks/${feedbackId}`, normUid);
+  }
+}
+
+/**
+ * Get all user feedback records
+ */
+export async function getFeedbacks(): Promise<any[]> {
+  try {
+    const col = collection(db, "feedbacks");
+    const snap = await getDocs(col);
+    const feedbacks: any[] = [];
+    snap.forEach((d) => {
+      feedbacks.push(d.data());
+    });
+    return feedbacks.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  } catch (error) {
+    console.error("Error fetching feedbacks:", error);
+    return [];
+  }
+}
+

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "Mintlify": {
+      "url": "https://mcp.mintlify.com",
+      "clientId": "mcp-cc-f0e3b51b-d333-4989-9563-ceaaac149ece",
+      "clientSecret": "sA2EYfVPcdNeIWM27pZZJUAjrDQbg-AB4dqqAQkYzDRJlJRC"
+    }
+  }
+}

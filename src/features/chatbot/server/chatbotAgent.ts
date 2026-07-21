@@ -30,6 +30,60 @@ async function generateContentWithFallback(params: any): Promise<any> {
   }
 }
 
+function normalizeTaskId(str: string | undefined | null): string {
+  if (!str) return "";
+  let clean = str.trim().toUpperCase().replace(/[\s\-_]+/g, "");
+  if (clean.startsWith("TASK")) {
+    clean = "TSK" + clean.slice(4);
+  }
+  const match = clean.match(/^TSK(\d+)$/);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    return `TSK${String(num).padStart(3, "0")}`;
+  }
+  return clean;
+}
+
+function findTaskByQuery(query: string | undefined | null, currentTasks: Task[]): { match?: Task; suggestion?: Task; searchedQuery: string } {
+  if (!query || !query.trim()) return { searchedQuery: query || "" };
+  const q = query.trim();
+  const normQ = normalizeTaskId(q);
+
+  // 1. Direct ID or normalized Task ID match (e.g. TSk-003, tsk-003, Tsk 3, task 003 -> TSK-003)
+  let match = currentTasks.find((t, idx) => {
+    if (t.id === q) return true;
+    const tTaskId = t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+    if (tTaskId && (normalizeTaskId(tTaskId) === normQ || tTaskId.toLowerCase() === q.toLowerCase())) return true;
+    return false;
+  });
+  if (match) return { match, searchedQuery: q };
+
+  // 2. Exact Title match or Substring match
+  const lowerQ = q.toLowerCase();
+  match = currentTasks.find(t => t.title.toLowerCase().trim() === lowerQ);
+  if (match) return { match, searchedQuery: q };
+
+  match = currentTasks.find(t => t.title.toLowerCase().includes(lowerQ));
+  if (match) return { match, searchedQuery: q };
+
+  // 3. Extract numbers and check for close Task ID matches (e.g. if user wrote LIC-333 or Task 333, check if TSK-333 exists)
+  const numMatch = q.match(/\d+/);
+  if (numMatch) {
+    const extractedNum = parseInt(numMatch[0], 10);
+    const candidate = currentTasks.find((t, idx) => {
+      const tTaskId = t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+      const tNumMatch = tTaskId.match(/\d+/);
+      if (tNumMatch && parseInt(tNumMatch[0], 10) === extractedNum) return true;
+      return false;
+    });
+    if (candidate) {
+      return { suggestion: candidate, searchedQuery: q };
+    }
+  }
+
+  return { searchedQuery: q };
+}
+
 export async function handleChatbotRequest(req: any, res: any) {
   try {
     const userId = (req.headers["x-user-id"] as string) || "demo-user";
@@ -100,13 +154,15 @@ export async function handleChatbotRequest(req: any, res: any) {
     const currentSubjects = dbData.subjects[activeDashboard.id] || [];
     const currentTasks = dbData.tasks[activeDashboard.id] || [];
 
-    // Provide FULL index of all workspace tasks to the AI model
-    const allWorkspaceTasks = currentTasks.map(t => ({
+    // Provide FULL index of all workspace tasks with taskId to the AI model
+    const allWorkspaceTasks = currentTasks.map((t, idx) => ({
       id: t.id,
+      taskId: t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`,
       title: t.title,
       date: t.date,
       status: t.status,
       priority: t.priority,
+      category: t.category,
       column: t.boardColumnId,
       timeSpentMinutes: t.timeSpentMinutes,
     }));
@@ -125,24 +181,28 @@ ${JSON.stringify(currentSubjects.map(s => ({ id: s.id, name: s.name, block: s.bl
 - All Workspace Tasks (Total: ${currentTasks.length}):
 ${JSON.stringify(allWorkspaceTasks)}
 
-CRITICAL TASK MATCHING & TIME LOGGING DIRECTIVES:
-1. CHECK EXISTING TASKS FIRST: Examine the "All Workspace Tasks" list above carefully.
-2. NEVER CREATE DUPLICATE TASKS: If the user asks to mark a task as done, update a task, or log time on a task (e.g. "Mark task 'Stack Implementation using Arrays and Lists' as done. Add time log of 5 hours in past dates..."), check if a task with that title ALREADY exists in the workspace.
-   - If an existing task exists, YOU MUST CALL \`update_task\` using its exact ID (e.g., id: "${allWorkspaceTasks.length > 0 ? allWorkspaceTasks[0].id : 'task_123'}").
-   - DO NOT call \`create_task\` when updating or logging time on an existing task!
-3. LOGGING TIME ON PAST DATES:
+CRITICAL TASK MATCHING & TASK ID DIRECTIVES:
+1. TASK ID MATCHING & FLEXIBILITY:
+   - Every task has a primary Task ID formatted as "TSK-001", "TSK-002", "TSK-003", etc.
+   - Users may refer to task IDs with variations in capitalization, spacing, hyphenation, or prefix (e.g., "TSk-003", "tsk-003", "TSK 003", "Tsk 3", "task 3", "tsk003", "task-003"). ALL OF THESE refer to "TSK-003"!
+   - Always map user task references to their corresponding Task ID or exact task title from "All Workspace Tasks".
+2. HANDLING NON-EXISTENT TASK IDs (e.g. LIC-333 or TSK-999):
+   - If a user mentions a task ID or task name that DOES NOT EXIST in "All Workspace Tasks" (e.g. "LIC-333"):
+     - DO NOT call create_task!
+     - DO NOT fabricate updates or pretend the task was updated!
+     - Respond directly to the user indicating that no task with ID "LIC-333" exists in their workspace.
+     - If a task with a matching number exists (e.g. TSK-333 exists when user typed LIC-333), explicitly ask: "No task with ID LIC-333 was found in your workspace. Did you mean TSK-333 ('<title>')?"
+3. NEVER CREATE DUPLICATE TASKS:
+   - Before calling create_task, verify if the user is referring to an existing task or Task ID. If a match exists, call \`update_task\` using its exact id or taskId!
+4. LOGGING TIME ON PAST DATES:
    - When a user asks to log time spent across past dates (e.g. 5 hours from June 6 to June 10, distributed 1 hour per day), pass a \`timeLogs\` array to \`update_task\` with individual date entries:
      [
        { "date": "2026-06-06", "minutes": 60, "note": "1h study log" },
-       { "date": "2026-06-07", "minutes": 60, "note": "1h study log" },
-       { "date": "2026-06-08", "minutes": 60, "note": "1h study log" },
-       { "date": "2026-06-09", "minutes": 60, "note": "1h study log" },
-       { "date": "2026-06-10", "minutes": 60, "note": "1h study log" }
+       { "date": "2026-06-07", "minutes": 60, "note": "1h study log" }
      ]
    - Set \`status: "Completed"\`.
-   - DO NOT create multiple separate tasks for each past date!
-4. Clear & Concise Responses: Confirm performed actions clearly and state total study time logged.
-5. Security & Isolation: Operate strictly in user ${userId}.
+5. Clear & Concise Responses: Confirm performed actions clearly and state total study time logged.
+6. Security & Isolation: Operate strictly in user ${userId}.
 `;
 
     const functionDeclarations = [
@@ -246,11 +306,8 @@ CRITICAL TASK MATCHING & TIME LOGGING DIRECTIVES:
           if (name === "create_task") {
             const requestedTitle = ((args as any).title || "").trim();
             
-            // Smart duplicate check: If task with this title ALREADY exists, automatically redirect to UPDATE!
-            const existingMatch = currentTasks.find(
-              t => t.title.toLowerCase().trim() === requestedTitle.toLowerCase() ||
-                   (requestedTitle.length > 8 && t.title.toLowerCase().includes(requestedTitle.toLowerCase()))
-            );
+            // Check if title or query matches an existing task by Task ID or Title
+            const { match: existingMatch } = findTaskByQuery(requestedTitle, currentTasks);
 
             if (existingMatch) {
               // Redirect create_task -> update_task on existing task!
@@ -293,7 +350,8 @@ CRITICAL TASK MATCHING & TIME LOGGING DIRECTIVES:
               };
 
               await saveUserTask(userId, updatedTask);
-              executedActions.push(`Updated existing task "${existingMatch.title}" to Completed (Logged ${newTimeSpent}m)`);
+              const formattedId = existingMatch.taskId || existingMatch.taskid || existingMatch.id;
+              executedActions.push(`Updated existing task ${formattedId} ("${existingMatch.title}") to Completed (Logged ${newTimeSpent}m)`);
             } else {
               // Create brand new task
               const taskDate = (args as any).date || new Date().toISOString().split("T")[0];
@@ -350,99 +408,94 @@ CRITICAL TASK MATCHING & TIME LOGGING DIRECTIVES:
               };
 
               await saveUserTask(userId, newTask);
-              executedActions.push(`Created task: "${requestedTitle}"`);
+              executedActions.push(`Created task ${seqTaskId}: "${requestedTitle}"`);
             }
           } else if (name === "update_task") {
-            const taskId = (args as any).id;
-            const taskTitle = (args as any).taskTitle || (args as any).title;
-
-            // Search by ID first, then title match
-            let existing = currentTasks.find(t => t.id === taskId);
-            if (!existing && taskTitle) {
-              const query = taskTitle.toLowerCase().trim();
-              existing = currentTasks.find(t => t.title.toLowerCase().trim() === query || t.title.toLowerCase().includes(query));
-            }
-            if (!existing && taskId) {
-              const query = taskId.toLowerCase().trim();
-              existing = currentTasks.find(t => t.title.toLowerCase().includes(query));
-            }
+            const targetQuery = (args as any).id || (args as any).taskId || (args as any).taskTitle || (args as any).title;
+            const { match: existing, suggestion, searchedQuery } = findTaskByQuery(targetQuery, currentTasks);
 
             if (!existing) {
-              throw new Error(`Task matching "${taskId || taskTitle}" not found in active workspace.`);
-            }
+              if (suggestion) {
+                const suggId = suggestion.taskId || suggestion.taskid || suggestion.id;
+                executedActions.push(`⚠️ No task with ID/Title "${searchedQuery}" was found. Did you mean ${suggId} ("${suggestion.title}")?`);
+              } else {
+                executedActions.push(`❌ No task matching "${searchedQuery}" exists in your active workspace.`);
+              }
+            } else {
+              let newTimeSpent = existing.timeSpentMinutes || 0;
+              let newTimeLogs = [...(existing.timeLogs || [])];
 
-            let newTimeSpent = existing.timeSpentMinutes || 0;
-            let newTimeLogs = [...(existing.timeLogs || [])];
-
-            const customLogs = (args as any).timeLogs;
-            if (Array.isArray(customLogs) && customLogs.length > 0) {
-              for (const item of customLogs) {
-                const m = Number(item.minutes) || 0;
-                if (m > 0) {
-                  newTimeSpent += m;
-                  newTimeLogs.push({
-                    id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-                    minutes: m,
-                    note: item.note || `Logged ${m}m via AI Copilot`,
-                    loggedAt: item.date ? `${item.date}T12:00:00.000Z` : new Date().toISOString(),
-                  });
+              const customLogs = (args as any).timeLogs;
+              if (Array.isArray(customLogs) && customLogs.length > 0) {
+                for (const item of customLogs) {
+                  const m = Number(item.minutes) || 0;
+                  if (m > 0) {
+                    newTimeSpent += m;
+                    newTimeLogs.push({
+                      id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                      minutes: m,
+                      note: item.note || `Logged ${m}m via AI Copilot`,
+                      loggedAt: item.date ? `${item.date}T12:00:00.000Z` : new Date().toISOString(),
+                    });
+                  }
                 }
               }
-            }
 
-            const loggedMins = Number((args as any).loggedTimeMinutes);
-            if (!isNaN(loggedMins) && loggedMins > 0 && (!Array.isArray(customLogs) || customLogs.length === 0)) {
-              newTimeSpent += loggedMins;
-              newTimeLogs.push({
-                id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
-                minutes: loggedMins,
-                note: `Logged ${loggedMins}m via AI Copilot`,
-                loggedAt: (args as any).date ? `${(args as any).date}T12:00:00.000Z` : new Date().toISOString(),
-              });
-            }
-
-            const newStatus = (args as any).status !== undefined ? (args as any).status : existing.status;
-
-            const updatedTask: Task = {
-              ...existing,
-              title: (args as any).title !== undefined ? (args as any).title : existing.title,
-              description: (args as any).description !== undefined ? (args as any).description : existing.description,
-              status: newStatus,
-              priority: (args as any).priority !== undefined ? (args as any).priority : existing.priority,
-              notes: (args as any).notes !== undefined ? (args as any).notes : existing.notes,
-              date: (args as any).date !== undefined ? (args as any).date : existing.date,
-              timeSpentMinutes: newTimeSpent,
-              timeLogs: newTimeLogs,
-            };
-
-            if (newStatus === "Completed") {
-              updatedTask.boardColumnId = "completed";
-            } else if (newStatus === "In Progress") {
-              updatedTask.boardColumnId = "in_progress";
-            } else if (newStatus === "Not Started") {
-              const todayStr = new Date().toISOString().split("T")[0];
-              if (updatedTask.date === todayStr) {
-                updatedTask.boardColumnId = "today";
-              } else {
-                updatedTask.boardColumnId = "backlog";
+              const loggedMins = Number((args as any).loggedTimeMinutes);
+              if (!isNaN(loggedMins) && loggedMins > 0 && (!Array.isArray(customLogs) || customLogs.length === 0)) {
+                newTimeSpent += loggedMins;
+                newTimeLogs.push({
+                  id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                  minutes: loggedMins,
+                  note: `Logged ${loggedMins}m via AI Copilot`,
+                  loggedAt: (args as any).date ? `${(args as any).date}T12:00:00.000Z` : new Date().toISOString(),
+                });
               }
-            }
 
-            await saveUserTask(userId, updatedTask);
-            executedActions.push(`Updated task: "${updatedTask.title}" (${newStatus}, ${newTimeSpent}m total)`);
+              const newStatus = (args as any).status !== undefined ? (args as any).status : existing.status;
+
+              const updatedTask: Task = {
+                ...existing,
+                title: (args as any).title !== undefined ? (args as any).title : existing.title,
+                description: (args as any).description !== undefined ? (args as any).description : existing.description,
+                status: newStatus,
+                priority: (args as any).priority !== undefined ? (args as any).priority : existing.priority,
+                notes: (args as any).notes !== undefined ? (args as any).notes : existing.notes,
+                date: (args as any).date !== undefined ? (args as any).date : existing.date,
+                timeSpentMinutes: newTimeSpent,
+                timeLogs: newTimeLogs,
+              };
+
+              if (newStatus === "Completed") {
+                updatedTask.boardColumnId = "completed";
+              } else if (newStatus === "In Progress") {
+                updatedTask.boardColumnId = "in_progress";
+              } else if (newStatus === "Not Started") {
+                const todayStr = new Date().toISOString().split("T")[0];
+                if (updatedTask.date === todayStr) {
+                  updatedTask.boardColumnId = "today";
+                } else {
+                  updatedTask.boardColumnId = "backlog";
+                }
+              }
+
+              await saveUserTask(userId, updatedTask);
+              const formattedId = existing.taskId || existing.taskid || existing.id;
+              executedActions.push(`Updated task ${formattedId} ("${updatedTask.title}") -> Status: ${newStatus}, Total Logged: ${newTimeSpent}m`);
+            }
           } else if (name === "delete_task") {
-            const taskId = (args as any).id;
-            const taskTitle = (args as any).taskTitle;
-            let targetId = taskId;
+            const targetQuery = (args as any).id || (args as any).taskId || (args as any).taskTitle;
+            const { match: existing, suggestion, searchedQuery } = findTaskByQuery(targetQuery, currentTasks);
 
-            if (!targetId && taskTitle) {
-              const match = currentTasks.find(t => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
-              if (match) targetId = match.id;
-            }
-
-            if (targetId) {
-              await deleteUserTask(userId, targetId);
-              executedActions.push(`Deleted task ID: ${targetId}`);
+            if (existing) {
+              await deleteUserTask(userId, existing.id);
+              const formattedId = existing.taskId || existing.taskid || existing.id;
+              executedActions.push(`Deleted task ${formattedId} ("${existing.title}")`);
+            } else if (suggestion) {
+              const suggId = suggestion.taskId || suggestion.taskid || suggestion.id;
+              executedActions.push(`⚠️ Task "${searchedQuery}" not found. Did you mean ${suggId} ("${suggestion.title}")?`);
+            } else {
+              executedActions.push(`❌ Task "${searchedQuery}" does not exist in active workspace.`);
             }
           } else if (name === "create_subject") {
             const newSubject: Subject = {
@@ -481,11 +534,11 @@ CRITICAL TASK MATCHING & TIME LOGGING DIRECTIVES:
         ...contents,
         {
           role: "model",
-          parts: [{ text: `Executed actions: ${JSON.stringify(executedActions)}` }],
+          parts: [{ text: `Executed actions and feedback: ${JSON.stringify(executedActions)}` }],
         },
         {
           role: "user",
-          parts: [{ text: "Briefly confirm the changes made in a friendly, helpful response." }],
+          parts: [{ text: "Respond appropriately based on the action results above. If an action failed or a task was missing (marked with ❌ or ⚠️), clearly inform the user and suggest the correct task ID if available. Otherwise confirm success." }],
         },
       ];
 

@@ -259,6 +259,7 @@ export default function UpdateSubject({
                 type="text"
                 value={editTimeline}
                 onChange={(e) => handleEditTimelineChange(e.target.value)}
+                placeholder="e.g. June 08, 2026 to June 21, 2026"
                 className={`w-full p-2.5 border text-xs bg-white rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 text-slate-700 font-semibold ${
                   editErrors.timeline ? "border-rose-400" : "border-slate-200"
                 }`}

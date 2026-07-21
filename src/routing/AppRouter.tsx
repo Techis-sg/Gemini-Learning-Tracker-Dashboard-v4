@@ -15,7 +15,7 @@ export function AppRouter() {
   const [appSettings, setAppSettings] = useState<any>(null);
 
   // Inactivity tracking states
-  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+  const lastActivityRef = useRef<number>(Date.now());
   const [showInactivityModal, setShowInactivityModal] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,7 +96,7 @@ export function AppRouter() {
     if (!user) return;
 
     const updateActivity = () => {
-      setLastActivity(Date.now());
+      lastActivityRef.current = Date.now();
     };
 
     // Listen to user inputs
@@ -107,7 +107,7 @@ export function AppRouter() {
 
     // Check inactivity status every 1 second
     timerIntervalRef.current = setInterval(() => {
-      const inactiveMs = Date.now() - lastActivity;
+      const inactiveMs = Date.now() - lastActivityRef.current;
       const inactiveSec = Math.floor(inactiveMs / 1000);
 
       // Inactivity warning thresholds from config
@@ -121,7 +121,7 @@ export function AppRouter() {
           handleInactivityLogout();
         }
       } else {
-        setShowInactivityModal(false);
+        setShowInactivityModal((prev) => (prev ? false : prev));
       }
     }, 1000);
 
@@ -132,7 +132,7 @@ export function AppRouter() {
       window.removeEventListener("scroll", updateActivity);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
-  }, [user, lastActivity]);
+  }, [user]);
 
   const handleInactivityLogout = async () => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
@@ -176,7 +176,7 @@ export function AppRouter() {
   };
 
   const handleKeepSessionAlive = () => {
-    setLastActivity(Date.now());
+    lastActivityRef.current = Date.now();
     setShowInactivityModal(false);
     toast.success("Active study session extended successfully!");
   };

@@ -119,7 +119,10 @@ export default function TasksListView({
         const isCompleted = task.status === "Completed";
         return (
           <div className="space-y-1 max-w-md relative group">
-            <span className={`font-bold text-sm block text-slate-800 break-words whitespace-normal ${isCompleted ? "line-through text-slate-400 font-normal" : ""}`}>
+            <span
+              onClick={() => onViewDetails(task)}
+              className={`font-bold text-sm block text-slate-800 break-words whitespace-normal cursor-pointer hover:text-indigo-600 hover:underline transition-colors ${isCompleted ? "line-through text-slate-400 font-normal" : ""}`}
+            >
               {task.title}
               {task.notes && <span className="inline-block ml-1 text-xs cursor-help">📝</span>}
             </span>
@@ -224,8 +227,9 @@ export default function TasksListView({
       cell: ({ row }) => {
         const task = row.original;
         const isOpen = openActionTaskId === task.id;
+        const isNearBottom = row.index >= tasks.length - 2 || tasks.length <= 4;
         return (
-          <div className="flex items-center justify-center lg:overflow-visible">
+          <div className="flex items-center justify-center">
             <div className="relative">
               <button
                 type="button"
@@ -241,7 +245,9 @@ export default function TasksListView({
               {isOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setOpenActionTaskId(null)} />
-                  <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-150 shadow-xl rounded-xl py-1.5 z-50 text-left font-sans text-xs">
+                  <div className={`absolute right-0 w-36 bg-white border border-slate-200 shadow-2xl rounded-xl py-1.5 z-50 text-left font-sans text-xs ${
+                    isNearBottom ? "bottom-full mb-1.5" : "top-full mt-1.5"
+                  }`}>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -249,7 +255,7 @@ export default function TasksListView({
                         setOpenActionTaskId(null);
                         onViewDetails(task);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5 text-indigo-500" />
                       View Details
@@ -261,7 +267,7 @@ export default function TasksListView({
                         setOpenActionTaskId(null);
                         onOpenTimeTracker(task);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Clock className="w-3.5 h-3.5 text-indigo-500" />
                       Log Time
@@ -273,7 +279,7 @@ export default function TasksListView({
                         setOpenActionTaskId(null);
                         onOpenEditTask(task);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-amber-500" />
                       Edit
@@ -285,7 +291,7 @@ export default function TasksListView({
                         setOpenActionTaskId(null);
                         onDeleteTask(task.id);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Trash className="w-3.5 h-3.5 text-rose-500" />
                       Delete
@@ -299,6 +305,7 @@ export default function TasksListView({
       },
     },
   ], [
+    tasks.length,
     subjects,
     openActionTaskId,
     onUpdateTask,
@@ -317,7 +324,7 @@ export default function TasksListView({
       currentPage={currentPage}
       onPageChange={onPageChange}
       paginationLabel="targets"
-      containerClassName="border border-slate-100 overflow-x-auto rounded-2xl shadow-sm bg-white"
+      containerClassName="border border-slate-100 rounded-2xl shadow-sm bg-white min-h-[220px] flex flex-col justify-between overflow-x-auto"
       tableClassName="w-full text-left border-collapse bg-white min-w-[800px]"
       theadClassName="font-mono text-[10px]"
       emptyState={

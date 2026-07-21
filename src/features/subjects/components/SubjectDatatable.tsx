@@ -15,6 +15,25 @@ interface SubjectDatatableProps {
   onSuccess: () => void;
 }
 
+function formatTimelineString(timeline?: string): string {
+  if (!timeline) return "";
+  return timeline.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_match, y, m, d) => {
+    const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+    if (isNaN(dateObj.getTime())) return _match;
+    const monthName = dateObj.toLocaleDateString("en-US", { month: "long" });
+    const formattedDay = String(d).padStart(2, "0");
+    return `${monthName} ${formattedDay}, ${y}`;
+  });
+}
+
+function parseTopicsList(text?: string): string[] {
+  if (!text || !text.trim() || text.trim() === "—") return [];
+  return text
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function SubjectDatatable({
   subjects,
   activeDashboardId,
@@ -29,6 +48,7 @@ export function SubjectDatatable({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [deletingSubject, setDeletingSubject] = useState<Subject | null>(null);
+  const [viewDetailsSubject, setViewDetailsSubject] = useState<Subject | null>(null);
 
   // Redirect interceptor state
   const [activeInterceptLink, setActiveInterceptLink] = useState<ParsedLink | null>(null);
@@ -62,7 +82,7 @@ export function SubjectDatatable({
     {
       accessorKey: "name",
       header: "Subject Name",
-      size: 240,
+      size: 260,
       cell: ({ row }) => {
         const sub = row.original;
         const isExpanded = row.getIsExpanded();
@@ -95,13 +115,13 @@ export function SubjectDatatable({
     {
       accessorKey: "timeline",
       header: "Timeline",
-      size: 150,
+      size: 220,
       cell: ({ row }) => {
         const sub = row.original;
         return (
           <div className="font-mono">
-            <span className="text-slate-600 text-xs font-bold block whitespace-normal">
-              {sub.timeline}
+            <span className="text-slate-700 text-xs font-bold block whitespace-normal">
+              {formatTimelineString(sub.timeline)}
             </span>
             <span className="block text-[10px] text-slate-400 mt-1 uppercase font-mono">
               📅 {sub.daysPlanned} days
@@ -113,7 +133,7 @@ export function SubjectDatatable({
     {
       accessorKey: "percentage",
       header: "Coverage progress",
-      size: 200,
+      size: 240,
       cell: ({ row }) => {
         const sub = row.original;
         const barColors = {
@@ -144,40 +164,15 @@ export function SubjectDatatable({
       },
     },
     {
-      accessorKey: "completedTopics",
-      header: "Completed",
-      size: 160,
-      cell: ({ row }) => {
-        const sub = row.original;
-        return (
-          <div className="font-mono text-emerald-700 text-[11px] leading-relaxed whitespace-normal break-words max-w-[150px]">
-            {sub.completedTopics || <span className="text-slate-300 font-mono text-[10px]">—</span>}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "pendingTopics",
-      header: "Pending topics",
-      size: 170,
-      cell: ({ row }) => {
-        const sub = row.original;
-        return (
-          <div className="font-mono text-slate-500 text-[11px] leading-relaxed whitespace-normal break-words max-w-[200px]">
-            {sub.pendingTopics || <span className="text-slate-300 font-mono text-[10px]">—</span>}
-          </div>
-        );
-      },
-    },
-    {
       id: "actions",
       header: "Actions",
-      size: 80,
+      size: 100,
       cell: ({ row }) => {
         const sub = row.original;
         const isOpen = openActionSubId === sub.id;
+        const isNearBottom = row.index >= subjects.length - 2 || subjects.length <= 4;
         return (
-          <div className="flex items-center justify-center lg:overflow-visible">
+          <div className="flex items-center justify-center">
             <div className="relative">
               <button
                 type="button"
@@ -193,7 +188,21 @@ export function SubjectDatatable({
               {isOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setOpenActionSubId(null)} />
-                  <div className="absolute right-0 mt-1 w-36 bg-white border border-slate-150 shadow-xl rounded-xl py-1.5 z-50 text-left font-sans text-xs">
+                  <div className={`absolute right-0 w-36 bg-white border border-slate-200 shadow-2xl rounded-xl py-1.5 z-50 text-left font-sans text-xs ${
+                    isNearBottom ? "bottom-full mb-1.5" : "top-full mt-1.5"
+                  }`}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenActionSubId(null);
+                        setViewDetailsSubject(sub);
+                      }}
+                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-indigo-500" />
+                      More Details
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -201,7 +210,7 @@ export function SubjectDatatable({
                         setOpenActionSubId(null);
                         openEditModal(sub);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-amber-500" />
                       Edit
@@ -213,7 +222,7 @@ export function SubjectDatatable({
                         setOpenActionSubId(null);
                         openDeleteModal(sub);
                       }}
-                      className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 font-bold font-mono text-[10px] uppercase"
+                      className="w-full px-3.5 py-2 hover:bg-rose-50 text-rose-600 flex items-center gap-2 font-bold font-mono text-[10px] uppercase cursor-pointer"
                     >
                       <Trash className="w-3.5 h-3.5 text-rose-500" />
                       Delete
@@ -490,6 +499,125 @@ export function SubjectDatatable({
           onSuccess={onSuccess}
         />
       )}
+
+      {/* --- SUBJECT MORE DETAILS MODAL --- */}
+      <Modal
+        isOpen={viewDetailsSubject !== null}
+        onClose={() => setViewDetailsSubject(null)}
+        title="Subject Track Details"
+        icon={<BookOpen className="w-5 h-5 text-indigo-600" />}
+        maxWidthClass="max-w-xl"
+      >
+        {viewDetailsSubject && (
+          <div className="font-sans space-y-4">
+            {/* Header badges */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase">
+                  {viewDetailsSubject.block}
+                </span>
+                {viewDetailsSubject.weightage && (
+                  <span className="text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 uppercase">
+                    {viewDetailsSubject.weightage}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-lg border uppercase ${
+                viewDetailsSubject.status === "Completed" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                viewDetailsSubject.status === "In Progress" ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
+                "bg-slate-50 text-slate-600 border-slate-200"
+              }`}>
+                {viewDetailsSubject.status}
+              </span>
+            </div>
+
+            {/* Subject Title & Timeline */}
+            <div className="space-y-1">
+              <h3 className="text-xl font-extrabold text-slate-800 leading-tight">
+                {viewDetailsSubject.name}
+              </h3>
+              <p className="text-xs text-slate-500 font-mono">
+                📅 Timeline: <span className="font-bold text-slate-700">{formatTimelineString(viewDetailsSubject.timeline)}</span> ({viewDetailsSubject.daysPlanned} days planned)
+              </p>
+            </div>
+
+            {/* Coverage Progress Bar */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 space-y-1.5">
+              <div className="flex justify-between items-center text-xs font-mono font-bold text-slate-700">
+                <span>COVERAGE PROGRESS</span>
+                <span>{viewDetailsSubject.percentage}%</span>
+              </div>
+              <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    viewDetailsSubject.status === "Completed" ? "bg-emerald-500" : "bg-indigo-600"
+                  }`}
+                  style={{ width: `${viewDetailsSubject.percentage}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Completed Topics Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <h4 className="text-xs font-bold font-mono text-emerald-800 uppercase tracking-wider">
+                  Completed Topics ({parseTopicsList(viewDetailsSubject.completedTopics).length})
+                </h4>
+              </div>
+              {parseTopicsList(viewDetailsSubject.completedTopics).length === 0 ? (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 font-mono text-xs italic">
+                  No completed topics logged yet for this track.
+                </div>
+              ) : (
+                <div className="p-3.5 bg-emerald-50/50 border border-emerald-100/80 rounded-2xl space-y-2 max-h-48 overflow-y-auto">
+                  {parseTopicsList(viewDetailsSubject.completedTopics).map((topic, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-emerald-950 leading-relaxed font-mono">
+                      <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                      <span>{topic}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pending Topics Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                <h4 className="text-xs font-bold font-mono text-slate-700 uppercase tracking-wider">
+                  Pending Topics ({parseTopicsList(viewDetailsSubject.pendingTopics).length})
+                </h4>
+              </div>
+              {parseTopicsList(viewDetailsSubject.pendingTopics).length === 0 ? (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 font-mono text-xs italic">
+                  No pending topics remaining for this track!
+                </div>
+              ) : (
+                <div className="p-3.5 bg-slate-50 border border-slate-150 rounded-2xl space-y-2 max-h-48 overflow-y-auto">
+                  {parseTopicsList(viewDetailsSubject.pendingTopics).map((topic, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-slate-700 leading-relaxed font-mono">
+                      <span className="text-indigo-500 font-bold shrink-0">•</span>
+                      <span>{topic}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Close action */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewDetailsSubject(null)}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold font-mono text-xs uppercase rounded-xl transition-all shadow-md cursor-pointer"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* --- REDIRECT INTERCEPTOR MODAL --- */}
       <Modal

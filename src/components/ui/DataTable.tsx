@@ -194,7 +194,7 @@ export function DataTable<TData>({
 
   return (
     <div className={containerClassName}>
-      <div className="overflow-x-auto w-full lg:overflow-visible">
+      <div className="overflow-x-auto overflow-y-visible w-full lg:overflow-visible flex-1">
         <table className={tableClassName}>
           <thead className={theadClassName}>
             {table.getHeaderGroups().map((headerGroup) => (

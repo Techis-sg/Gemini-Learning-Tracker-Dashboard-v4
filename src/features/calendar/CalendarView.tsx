@@ -13,6 +13,7 @@ interface CalendarViewProps {
   onOpenAddTask: (dateStr: string) => void;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
+  onViewTaskDetails?: (task: Task) => void;
 }
 
 export default function CalendarView({
@@ -25,6 +26,7 @@ export default function CalendarView({
   onOpenAddTask,
   onUpdateTask,
   onDeleteTask,
+  onViewTaskDetails,
 }: CalendarViewProps) {
   // We'll set the initial calendar month to July 2026
   const [currentYear, setCurrentYear] = useState(2026);
@@ -58,12 +60,35 @@ export default function CalendarView({
 
   const getDayTasks = (day: number) => {
     const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return tasks.filter((t) => t.date === formattedDate);
+    return tasks.filter((t) => {
+      if (t.date === formattedDate) return true;
+      if (t.timeLogs && t.timeLogs.some((l) => l.loggedAt && l.loggedAt.startsWith(formattedDate))) return true;
+      return false;
+    });
   };
 
   const getDayLoggedMinutes = (day: number) => {
+    const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const dayTasks = getDayTasks(day);
-    return dayTasks.reduce((sum, t) => sum + t.timeSpentMinutes, 0);
+    let total = 0;
+    for (const t of dayTasks) {
+      if (t.timeLogs && t.timeLogs.length > 0) {
+        let loggedForDay = 0;
+        for (const log of t.timeLogs) {
+          if (log.loggedAt && log.loggedAt.startsWith(formattedDate)) {
+            loggedForDay += log.minutes || 0;
+          }
+        }
+        if (loggedForDay > 0) {
+          total += loggedForDay;
+        } else if (t.date === formattedDate) {
+          total += t.timeSpentMinutes || 0;
+        }
+      } else if (t.date === formattedDate) {
+        total += t.timeSpentMinutes || 0;
+      }
+    }
+    return total;
   };
 
   const getSubjectName = (subjectId?: string) => {
@@ -143,22 +168,31 @@ export default function CalendarView({
           <div className="space-y-1 w-full mt-1.5 flex-1 flex flex-col justify-end">
             {dayTasks.length > 0 && (
               <div className="flex flex-col gap-0.5 max-h-[42px] overflow-hidden">
-                {dayTasks.slice(0, 2).map((t) => (
-                  <div
-                    key={t.id}
-                    className={`text-[8px] truncate font-bold px-1 py-0.5 rounded-md leading-none line-clamp-1 border ${
-                      isToday
-                        ? "bg-indigo-700/60 text-white border-indigo-500/30"
-                        : t.status === "Completed"
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-100/60"
-                        : "bg-slate-50 text-slate-600 border-slate-100"
-                    }`}
-                    title={t.title}
-                  >
-                    {t.status === "Completed" ? "✓ " : ""}
-                    {t.title}
-                  </div>
-                ))}
+                {dayTasks.slice(0, 2).map((t, idx) => {
+                  const taskIdVal = t.taskId || t.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDayClick(dateStr);
+                        if (onViewTaskDetails) onViewTaskDetails(t);
+                      }}
+                      className={`text-[8px] truncate font-bold px-1 py-0.5 rounded-md leading-none line-clamp-1 border cursor-pointer hover:underline ${
+                        isToday
+                          ? "bg-indigo-700/60 text-white border-indigo-500/30"
+                          : t.status === "Completed"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-100/60"
+                          : "bg-slate-50 text-slate-600 border-slate-100 hover:text-indigo-600"
+                      }`}
+                      title={`${taskIdVal}: ${t.title}`}
+                    >
+                      <span className="font-mono text-[7px] opacity-75 mr-0.5">{taskIdVal}:</span>
+                      {t.status === "Completed" ? "✓ " : ""}
+                      {t.title}
+                    </div>
+                  );
+                })}
                 {dayTasks.length > 2 && (
                   <div className={`text-[7px] font-mono font-bold ${isToday ? "text-indigo-200" : "text-slate-400"}`}>
                     +{dayTasks.length - 2} more
@@ -184,7 +218,12 @@ export default function CalendarView({
     return cells;
   };
 
-  const selectedDateTasks = tasks.filter((t) => t.date === selectedDate);
+  const selectedDateTasks = tasks.filter((t) => {
+    if (t.date === selectedDate) return true;
+    if (t.timeLogs && t.timeLogs.some((l) => l.loggedAt && l.loggedAt.startsWith(selectedDate))) return true;
+    return false;
+  });
+
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === "Completed").length;
 
@@ -301,8 +340,9 @@ export default function CalendarView({
                 </span>
               </div>
             ) : (
-              selectedDateTasks.map((task) => {
+              selectedDateTasks.map((task, idx) => {
                 const isCompleted = task.status === "Completed";
+                const displayTaskId = task.taskId || task.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
                 
                 const handleToggle = () => {
                   const nextStatus = isCompleted ? "Not Started" : "Completed";
@@ -313,9 +353,16 @@ export default function CalendarView({
                 return (
                   <div
                     key={task.id}
-                    className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col gap-2.5 relative group"
+                    className="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col gap-2 relative group"
                   >
-                    {/* Top Row: checkbox + title */}
+                    {/* Header Row: Task ID badge */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-extrabold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100/60 shadow-sm">
+                        {displayTaskId}
+                      </span>
+                    </div>
+
+                    {/* Main Row: checkbox + title */}
                     <div className="flex gap-2 items-start">
                       <button
                         onClick={handleToggle}
@@ -329,7 +376,12 @@ export default function CalendarView({
                       </button>
                       
                       <div className="flex-1 leading-none">
-                        <span className={`text-[11px] font-bold text-slate-800 leading-snug block ${isCompleted ? "line-through text-slate-400" : ""}`}>
+                        <span
+                          onClick={() => onViewTaskDetails && onViewTaskDetails(task)}
+                          className={`text-[11px] font-bold text-slate-800 leading-snug block cursor-pointer hover:text-indigo-600 hover:underline transition-colors ${
+                            isCompleted ? "line-through text-slate-400" : ""
+                          }`}
+                        >
                           {task.title}
                         </span>
                         {task.subjectId && (

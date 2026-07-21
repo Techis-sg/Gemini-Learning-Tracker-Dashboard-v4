@@ -27,6 +27,7 @@ interface KanbanBoardProps {
   onOpenAddTask: (columnId: Task["boardColumnId"]) => void;
   onReorderTasks?: (draggedId: string, targetId: string, targetColumn: string) => void;
   onMoveTaskToColumn?: (draggedId: string, targetColumn: string) => void;
+  onViewTaskDetails?: (task: Task) => void;
 }
 
 export default function KanbanBoard({
@@ -39,6 +40,7 @@ export default function KanbanBoard({
   onOpenAddTask,
   onReorderTasks,
   onMoveTaskToColumn,
+  onViewTaskDetails,
 }: KanbanBoardProps) {
   const [activeDragOverCol, setActiveDragOverCol] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -241,8 +243,9 @@ export default function KanbanBoard({
                   Drag study targets here to change progress state
                 </div>
               ) : (
-                colTasks.map((task) => {
+                colTasks.map((task, idx) => {
                   const isBeingDragged = draggedTaskId === task.id;
+                  const displayTaskId = task.taskId || task.taskid || `TSK-${String(idx + 1).padStart(3, "0")}`;
 
                   return (
                     <div
@@ -258,9 +261,14 @@ export default function KanbanBoard({
                     >
                       {/* Drag Handle & Info header */}
                       <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${getPriorityBadge(task.priority)}`}>
-                          {task.priority} Priority
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-mono font-extrabold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100/60 shadow-sm">
+                            {displayTaskId}
+                          </span>
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${getPriorityBadge(task.priority)}`}>
+                            {task.priority}
+                          </span>
+                        </div>
                         
                         {/* Drag Handle Grip Icon */}
                         <div className="text-slate-300 group-hover:text-slate-400 transition-colors">
@@ -270,9 +278,12 @@ export default function KanbanBoard({
 
                       {/* Task Title & Log Time */}
                       <div className="flex flex-col gap-1.5">
-                        <h4 className={`font-semibold text-xs sm:text-sm leading-snug transition-colors ${
-                          col.id === "completed" ? "line-through text-slate-400 font-normal" : "text-slate-800 group-hover:text-indigo-600"
-                        }`}>
+                        <h4
+                          onClick={() => onViewTaskDetails && onViewTaskDetails(task)}
+                          className={`font-semibold text-xs sm:text-sm leading-snug transition-colors cursor-pointer hover:text-indigo-600 hover:underline ${
+                            col.id === "completed" ? "line-through text-slate-400 font-normal" : "text-slate-800"
+                          }`}
+                        >
                           {col.id === "completed" && <span className="text-emerald-500 mr-1 font-bold">✓</span>}
                           {task.title}
                         </h4>

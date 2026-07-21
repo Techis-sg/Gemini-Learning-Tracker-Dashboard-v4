@@ -219,7 +219,7 @@ export default function AddSubject({
                 type="text"
                 value={addTimeline}
                 onChange={(e) => handleAddTimelineChange(e.target.value)}
-                placeholder="e.g. Jul 11 - 24"
+                placeholder="e.g. June 08, 2026 to June 21, 2026"
                 className={`w-full p-2.5 border text-xs bg-white rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 text-slate-700 font-semibold ${
                   addErrors.timeline ? "border-rose-400" : "border-slate-200"
                 }`}

@@ -13,7 +13,7 @@ import {
   Target
 } from "lucide-react";
 import { Dashboard, Subject, Task } from "@/types";
-import { apiFetch, toast } from "@utils/index";
+import { apiFetch, toast, getSyncedSubjects } from "@utils/index";
 
 // Components & layouts
 import SidebarLayout from "@layouts/SidebarLayout";
@@ -37,6 +37,7 @@ import {
   TaskDatatable,
   useTasks,
 } from "@features/tasks";
+import { ViewTaskDetailsModal } from "@features/tasks/components/ViewTaskDetailsModal";
 import { AIChatDrawer } from "@features/chatbot";
 import { Onboarding } from "./Onboarding";
 
@@ -88,6 +89,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
   const [showAIChatDrawer, setShowAIChatDrawer] = useState(false);
   const [activeTimeTrackerTask, setActiveTimeTrackerTask] = useState<Task | null>(null);
   const [activeEditTask, setActiveEditTask] = useState<Task | null>(null);
+  const [activeViewTaskModal, setActiveViewTaskModal] = useState<Task | null>(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [addTaskColumn, setAddTaskColumn] = useState<Task["boardColumnId"]>("today");
   const [addTaskInitialDate, setAddTaskInitialDate] = useState(new Date().toLocaleDateString("en-CA"));
@@ -306,8 +308,12 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
   };
 
   const currentDashboard = activeDashboard;
-  const currentSubjects = subjects[activeDashboardIdReal] || [];
+  const rawSubjects = subjects[activeDashboardIdReal] || [];
   const currentTasks = tasks[activeDashboardIdReal] || [];
+  const currentSubjects = React.useMemo(
+    () => getSyncedSubjects(rawSubjects, currentTasks),
+    [rawSubjects, currentTasks]
+  );
 
   const tabLabelsMap: Record<string, string> = {
     dashboard: "Dashboard",
@@ -865,6 +871,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                 onOpenEditTask={handleOpenEditTask}
                 onOpenTimeTracker={setActiveTimeTrackerTask}
                 onReorderTasks={handleReorderTasks}
+                onViewTaskDetails={(task) => setActiveViewTaskModal(task)}
               />
             )}
             {activeTab === "calendar" && (
@@ -878,6 +885,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
                 onOpenAddTask={handleOpenCalendarAddTask}
                 onUpdateTask={handleUpdateTask}
                 onDeleteTask={handleDeleteTask}
+                onViewTaskDetails={(task) => setActiveViewTaskModal(task)}
               />
             )}
             {activeTab === "tasks" && (
@@ -957,6 +965,16 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
             subjects={currentSubjects}
             initialDate={addTaskInitialDate}
             onSuccess={() => fetchDB(activeDashboardIdReal, true)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeViewTaskModal && (
+          <ViewTaskDetailsModal
+            task={activeViewTaskModal}
+            subjects={currentSubjects}
+            onClose={() => setActiveViewTaskModal(null)}
           />
         )}
       </AnimatePresence>

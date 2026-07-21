@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Task, Subject } from "@/types";
 import { getPriorityColor, getCategoryBg, getStatusColor, Modal, getTodayString } from "@utils/index";
 import { Select } from "@components/ui";
@@ -64,12 +64,56 @@ export default function TaskDatatable({
     }
   };
 
+  // Pre-calculate canonical Task ID for each task in the full tasks list
+  const canonicalTaskIds = useMemo(() => {
+    const map = new Map<string, string>();
+    tasks.forEach((t, index) => {
+      const canonical = t.taskId || t.taskid || `TSK-${String(index + 1).padStart(3, "0")}`;
+      map.set(t.id, canonical);
+    });
+    return map;
+  }, [tasks]);
+
   // 1. Filtering Logic
   const filteredTasks = tasks.filter((t) => {
-    const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.notes.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.toLowerCase().trim();
+    const canonicalId = canonicalTaskIds.get(t.id) || t.id;
+
+    const matchesSearch = (() => {
+      if (!query) return true;
+
+      const cleanQ = query.replace(/[\s\-_]/g, "");
+      const cleanCanonical = canonicalId.toLowerCase().replace(/[\s\-_]/g, "");
+
+      const isNumericQuery = /^\d+$/.test(query);
+      const isTaskIdQuery = /^tsk\d+$/i.test(cleanQ) || /^#?tsk-?\d+$/i.test(query);
+
+      if (isNumericQuery) {
+        const queryNum = parseInt(query, 10);
+        const taskIdMatch = canonicalId.match(/\d+/);
+        if (taskIdMatch) {
+          const taskIdNum = parseInt(taskIdMatch[0], 10);
+          if (taskIdNum === queryNum) return true;
+        }
+        if (t.title.toLowerCase().includes(query)) return true;
+        if (t.description && t.description.toLowerCase().includes(query)) return true;
+        if (t.notes && t.notes.toLowerCase().includes(query)) return true;
+        return false;
+      }
+
+      if (isTaskIdQuery) {
+        if (cleanCanonical === cleanQ) return true;
+        if (cleanCanonical.includes(cleanQ)) return true;
+        return false;
+      }
+
+      if (canonicalId.toLowerCase().includes(query) || cleanCanonical.includes(cleanQ)) return true;
+      if (t.title.toLowerCase().includes(query)) return true;
+      if (t.description && t.description.toLowerCase().includes(query)) return true;
+      if (t.notes && t.notes.toLowerCase().includes(query)) return true;
+
+      return false;
+    })();
 
     const matchesCategory =
       categoryFilter === "all" || t.category === categoryFilter;
@@ -183,7 +227,7 @@ export default function TaskDatatable({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search title, subtopics..."
+              placeholder="Search task name, subtopics, or ID (e.g. 058 or TSK-058)..."
               className="w-full p-1.5 pl-8 border border-slate-200 bg-white hover:border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 transition-all rounded-lg shadow-sm text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />

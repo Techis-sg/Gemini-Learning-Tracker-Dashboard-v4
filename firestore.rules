@@ -11,6 +11,12 @@ service cloud.firestore {
       return id is string && id.size() <= 128;
     }
 
+    function isOwner(userId) {
+      return isValidId(userId) && (
+        request.auth == null || request.auth.uid == userId
+      );
+    }
+
     function incoming() {
       return request.resource.data;
     }
@@ -110,33 +116,33 @@ service cloud.firestore {
 
     // --- SECURED PATH MATCHING ---
     match /users/{userId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidUser(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidUser(incoming());
     }
 
     match /users/{userId}/dashboards/{dashboardId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidDashboard(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidDashboard(incoming());
     }
 
     match /users/{userId}/subjects/{subjectId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidSubject(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidSubject(incoming());
     }
 
     match /users/{userId}/tasks/{taskId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidTask(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidTask(incoming());
     }
 
     match /users/{userId}/settings/{settingId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidSettings(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidSettings(incoming());
     }
 
     match /users/{userId}/history/{logId} {
-      allow read, delete: if isValidId(userId);
-      allow create, update: if isValidId(userId) && isValidHistoryLog(incoming());
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidHistoryLog(incoming());
     }
   }
 }

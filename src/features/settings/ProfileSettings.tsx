@@ -25,10 +25,14 @@ export function ProfileSettings({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const names = (user?.name || "").trim().split(/\s+/);
+  const userFirstName = user?.firstName || names[0] || "";
+  const userLastName = user?.lastName || (names.length > 1 ? names.slice(1).join(" ") : "");
+
   // Form states with customizable typography and branding values
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    firstName: userFirstName,
+    lastName: userLastName,
     email: user?.email || "",
     mobile: "",
     addressLine1: "",
@@ -70,6 +74,8 @@ export function ProfileSettings({
             setFormData((prev) => ({
               ...prev,
               ...data.settings,
+              firstName: data.settings.firstName || userFirstName || prev.firstName,
+              lastName: data.settings.lastName || userLastName || prev.lastName,
               email: data.settings.email || user?.email || prev.email,
               hiddenMenus: data.settings.hiddenMenus || [],
             }));
@@ -78,11 +84,10 @@ export function ProfileSettings({
             }
           } else {
             // Prepopulate name fields from user object
-            const names = (user?.name || "").split(" ");
             setFormData((prev) => ({
               ...prev,
-              firstName: names[0] || "",
-              lastName: names.slice(1).join(" ") || "",
+              firstName: userFirstName,
+              lastName: userLastName,
               email: user?.email || "",
             }));
           }

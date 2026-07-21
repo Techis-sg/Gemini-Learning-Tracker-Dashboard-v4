@@ -71,11 +71,14 @@ export function Onboarding({ user, onLogout, onImportSuccess }: OnboardingProps)
 
         let extractedCount = 0;
         for (const name of expectedFiles) {
-          const zipEntry = zipData.file(name);
+          // Flexible entry lookup: find file even if inside a subfolder in the zip
+          const entryKey = Object.keys(zipData.files).find(
+            path => path.toLowerCase().endsWith(name.toLowerCase()) && !zipData.files[path].dir
+          );
+          const zipEntry = entryKey ? zipData.file(entryKey) : null;
           if (zipEntry) {
             const content = await zipEntry.async("string");
             const ext = name.split(".").pop() as "json" | "csv";
-            // Mock a file size based on string length for listing
             const mockSize = content.length;
             newFiles[name] = {
               name,
@@ -190,7 +193,7 @@ export function Onboarding({ user, onLogout, onImportSuccess }: OnboardingProps)
 
   const handleImport = async () => {
     setError(null);
-    const required = ["plan_meta.json", "subjects.csv", "schedule.csv"];
+    const required = ["plan_meta.json", "subjects.csv", "schedule.csv", "goals.json", "resources.csv"];
     const missing = required.filter(fn => !queuedFiles[fn]);
 
     if (missing.length > 0) {
@@ -238,7 +241,8 @@ export function Onboarding({ user, onLogout, onImportSuccess }: OnboardingProps)
   };
 
   const queuedList = Object.values(queuedFiles);
-  const hasRequiredFiles = !!(queuedFiles["plan_meta.json"] && queuedFiles["subjects.csv"] && queuedFiles["schedule.csv"]);
+  const requiredFileNames = ["plan_meta.json", "subjects.csv", "schedule.csv", "goals.json", "resources.csv"];
+  const hasRequiredFiles = requiredFileNames.every(fn => !!queuedFiles[fn]);
 
   return (
     <div className="min-h-screen bg-[#fafaf9] text-slate-800 p-6 md:p-12 flex flex-col items-center justify-center">
@@ -325,7 +329,7 @@ export function Onboarding({ user, onLogout, onImportSuccess }: OnboardingProps)
                 Queued Files ({queuedList.length})
               </span>
               <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                {Object.keys(queuedFiles).filter(fn => ["plan_meta.json", "subjects.csv", "schedule.csv"].includes(fn)).length}/3 Required
+                {Object.keys(queuedFiles).filter(fn => requiredFileNames.includes(fn)).length}/5 Required
               </span>
             </div>
             
@@ -336,7 +340,7 @@ export function Onboarding({ user, onLogout, onImportSuccess }: OnboardingProps)
                     <FileIcon className="w-5 h-5 text-slate-400" />
                     <div>
                       <span className="text-xs font-bold text-slate-700">{file.name}</span>
-                      {["plan_meta.json", "subjects.csv", "schedule.csv"].includes(file.name) && (
+                      {requiredFileNames.includes(file.name) && (
                         <span className="ml-2 text-[8px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                           Required
                         </span>

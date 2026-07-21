@@ -21,7 +21,7 @@ export default function AddSubject({
 }: AddSubjectProps) {
   // Form states
   const [addName, setAddName] = useState("");
-  const [addBlock, setAddBlock] = useState<'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA'>('Block 1 - GATE');
+  const [addBlock, setAddBlock] = useState<string>('Block 1 - GATE');
   const [addDays, setAddDays] = useState(10);
   const [addTimeline, setAddTimeline] = useState("");
   const [addWeightage, setAddWeightage] = useState("");

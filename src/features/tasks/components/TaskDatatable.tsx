@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, getStatusColor, Modal } from "@utils/index";
+import { getPriorityColor, getCategoryBg, getStatusColor, Modal, getTodayString } from "@utils/index";
 import { Select } from "@components/ui";
 import { PAGINATION_CONFIG } from "@config/app.config";
 import {
@@ -80,11 +80,7 @@ export default function TaskDatatable({
     const matchesStatus =
       statusFilter === "all" || t.status === statusFilter;
 
-    const todayDateObj = new Date();
-    const todayY = todayDateObj.getFullYear();
-    const todayM = String(todayDateObj.getMonth() + 1).padStart(2, "0");
-    const todayD = String(todayDateObj.getDate()).padStart(2, "0");
-    const todayStr = `${todayY}-${todayM}-${todayD}`;
+    const todayStr = getTodayString();
 
     const matchesTime = (() => {
       if (timeFilter === "today") return t.date === todayStr;

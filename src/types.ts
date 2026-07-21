@@ -21,21 +21,21 @@ export interface Task {
   title: string;
   description: string;
   date: string; // YYYY-MM-DD
-  category: 'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA' | 'General';
+  category: 'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA' | 'General' | (string & {});
   status: 'Not Started' | 'In Progress' | 'Completed';
   priority: 'Low' | 'Medium' | 'High';
   notes: string;
   timeSpentMinutes: number;
   timeLogs: TimeLog[];
   attachments: TaskAttachment[];
-  boardColumnId: 'backlog' | 'today' | 'in_progress' | 'completed' | 'revision';
+  boardColumnId: 'backlog' | 'today' | 'in_progress' | 'completed' | 'revision' | (string & {});
 }
 
 export interface Subject {
   id: string;
   dashboardId?: string;
   name: string;
-  block: 'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA';
+  block: 'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA' | (string & {});
   daysPlanned: number;
   timeline: string;
   status: 'Not Started' | 'In Progress' | 'Completed';

@@ -34,12 +34,12 @@ export function PageLayout({
   onCloseNewDash,
 }: PageLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#F4F5F8] text-slate-800 font-sans py-4 px-2 sm:p-6 lg:p-8 flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-[#F4F5F8] dark:bg-[#0f172a] cosmic:bg-[#021f18] text-slate-800 dark:text-slate-100 cosmic:text-emerald-200 font-sans py-4 px-2 sm:p-6 lg:p-8 flex flex-col items-center justify-center transition-colors">
       {/* Breadcrumb strip */}
       <Breadcrumbs items={breadcrumbs} />
 
       {/* Main Soft Window Frame Container */}
-      <div className="w-full max-w-[1750px] bg-white border border-slate-100 rounded-[24px] md:rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col md:flex-row min-h-[85vh]">
+      <div className="w-full max-w-[1750px] bg-white dark:bg-[#1e293b] cosmic:bg-[#064e3b] border border-slate-100 dark:border-slate-800 cosmic:border-emerald-800 rounded-[24px] md:rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col md:flex-row min-h-[85vh] transition-colors">
         {children}
       </div>
     </div>
@@ -76,7 +76,7 @@ export function PageContent({
   onCloseNewDash,
 }: PageContentProps) {
   return (
-    <main className="flex-1 bg-[#FAFAFC] overflow-y-auto flex flex-col min-h-[85vh]">
+    <main className="flex-1 bg-[#FAFAFC] dark:bg-[#0f172a] cosmic:bg-[#022c22] overflow-y-auto flex flex-col min-h-[85vh] transition-colors">
       <div className="p-5 md:p-8 flex flex-col gap-6 flex-1">
         {/* Top Greeting and Sub-Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">

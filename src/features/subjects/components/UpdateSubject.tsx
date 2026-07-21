@@ -23,7 +23,7 @@ export default function UpdateSubject({
 }: UpdateSubjectProps) {
   // Form states
   const [editName, setEditName] = useState("");
-  const [editBlock, setEditBlock] = useState<'Block 1 - GATE' | 'Block 2 - Placements' | 'DSA'>('Block 1 - GATE');
+  const [editBlock, setEditBlock] = useState<string>('Block 1 - GATE');
   const [editDays, setEditDays] = useState(10);
   const [editTimeline, setEditTimeline] = useState("");
   const [editWeightage, setEditWeightage] = useState("");

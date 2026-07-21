@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Subject } from "@/types";
 import { IconPlus as Plus, IconEdit as Edit2, IconTrash as Trash, IconBook as BookOpen, IconGlobe as Globe, IconChevronRight as ChevronRight, IconChevronDown as ChevronDown, IconExternalLink as ExternalLink, IconDotsVerticalFilled as MoreVertical } from '@tabler/icons-react';
 import { Tooltip, DataTable } from "@components/ui";
@@ -341,16 +341,47 @@ export function SubjectDatatable({
     );
   };
 
-  const [activeBlockTab, setActiveBlockTab] = useState<"Block 1 - GATE" | "Block 2 - Placements" | "DSA">("Block 1 - GATE");
+  const uniqueBlocks = Array.from(
+    new Set(subjects.map((s) => s.block).filter((b): b is string => Boolean(b) && b.trim().length > 0))
+  );
 
-  const blockGroups = [
-    { title: "📘 Block 1 — Academic Theory & Core Subjects", id: "Block 1 - GATE" as const, bg: "bg-indigo-50 text-indigo-700 border-indigo-100/50" },
-    { title: "💻 Block 2 — Projects & Practical Application", id: "Block 2 - Placements" as const, bg: "bg-teal-50 text-teal-700 border-teal-100/50" },
-    { title: "🚀 Daily Programming & Problem Solving", id: "DSA" as const, bg: "bg-purple-50 text-purple-700 border-purple-100/50" },
-  ];
+  const defaultBlocks = uniqueBlocks.length > 0 ? uniqueBlocks : ["Block 1 - GATE", "Block 2 - Placements", "DSA"];
 
-  const selectedGroup = blockGroups.find((g) => g.id === activeBlockTab) || blockGroups[0];
-  const groupSubjects = subjects.filter((s) => s.block === activeBlockTab);
+  const [activeBlockTab, setActiveBlockTab] = useState<string>(defaultBlocks[0]);
+
+  // Ensure active tab stays valid if blocks change
+  useEffect(() => {
+    if (!defaultBlocks.includes(activeBlockTab)) {
+      setActiveBlockTab(defaultBlocks[0]);
+    }
+  }, [subjects]);
+
+  const dynamicTabs = defaultBlocks.map((blk) => {
+    let icon = "📂";
+    let title = `Track — ${blk}`;
+    if (blk.toLowerCase().includes("b1") || blk.toLowerCase().includes("gate") || blk.toLowerCase().includes("core") || blk.toLowerCase().includes("theory") || blk.toLowerCase().includes("1")) {
+      icon = "📘";
+      title = `📘 ${blk} — Core Academic Theory`;
+    } else if (blk.toLowerCase().includes("b2") || blk.toLowerCase().includes("placement") || blk.toLowerCase().includes("project") || blk.toLowerCase().includes("2")) {
+      icon = "💻";
+      title = `💻 ${blk} — Projects & Applications`;
+    } else if (blk.toLowerCase().includes("dsa") || blk.toLowerCase().includes("code") || blk.toLowerCase().includes("algo")) {
+      icon = "🚀";
+      title = `🚀 ${blk} — Coding & Problem Solving`;
+    }
+    return {
+      id: blk,
+      label: `${icon} ${blk}`,
+      title,
+      bg: "bg-slate-50 text-slate-700 border-slate-200/50",
+    };
+  });
+
+  const groupSubjects = subjects.filter(
+    (s) => s.block === activeBlockTab || (s.block && s.block.toLowerCase() === activeBlockTab.toLowerCase())
+  );
+
+  const selectedGroup = dynamicTabs.find((t) => t.id === activeBlockTab) || dynamicTabs[0];
 
   return (
     <div className="bg-white border border-slate-100 p-6 shadow-sm rounded-3xl space-y-6">
@@ -374,21 +405,21 @@ export function SubjectDatatable({
         </button>
       </div>
 
-      {/* Switchable Tabs Navbar */}
-      <div className="flex border border-slate-100 p-1 bg-slate-50/50 rounded-2xl gap-1">
-        {blockGroups.map((group) => {
+      {/* Switchable Dynamic Tabs Navbar */}
+      <div className="flex flex-wrap border border-slate-100 p-1 bg-slate-50/50 rounded-2xl gap-1">
+        {dynamicTabs.map((group) => {
           const isActive = activeBlockTab === group.id;
           return (
             <button
               key={group.id}
               onClick={() => setActiveBlockTab(group.id)}
-              className={`flex-1 text-center px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+              className={`flex-1 min-w-[120px] text-center px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                 isActive
                   ? "bg-indigo-600 text-white shadow-md border border-indigo-600"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
               }`}
             >
-              {group.id === "Block 1 - GATE" ? "📘 Core Theory" : group.id === "Block 2 - Placements" ? "💻 Practical/Projects" : "🚀 Code & DSA"}
+              {group.label}
             </button>
           );
         })}

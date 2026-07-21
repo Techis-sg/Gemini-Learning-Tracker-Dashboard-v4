@@ -73,9 +73,12 @@ async function generateContentWithFallback(params: any): Promise<any> {
     throw new Error("Gemini API client is not configured.");
   }
 
-  const originalModel = params.model || "gemini-3.5-flash";
+  const originalModel = params.model || "gemini-3.6-flash";
   try {
-    return await ai.models.generateContent(params);
+    return await ai.models.generateContent({
+      ...params,
+      model: params.model || "gemini-3.6-flash",
+    });
   } catch (err: any) {
     const errorStr = String(err.message || err).toLowerCase();
     const is503 = errorStr.includes("503") || 
@@ -814,7 +817,7 @@ Only return the JSON. No conversational text.
       };
 
       const response = await generateContentWithFallback({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         contents: { parts: [imagePart, textPart] },
         config: {
           responseMimeType: "application/json",
@@ -823,7 +826,7 @@ Only return the JSON. No conversational text.
       responseText = response.text || "";
     } else {
       const response = await generateContentWithFallback({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.6-flash",
         contents: userPrompt + `\n\nPlanner Source Material:\n${plannerText}`,
         config: {
           responseMimeType: "application/json",
@@ -918,7 +921,8 @@ Only return the JSON. No conversational text.
 
 // Helper functions for CSV parsing
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  const cleanText = (text || "").replace(/^\uFEFF/, "");
+  const lines = cleanText.split(/\r?\n/).filter(line => line.trim().length > 0);
   if (lines.length === 0) return [];
 
   const headers = parseCSVLine(lines[0]);
@@ -929,11 +933,28 @@ function parseCSV(text: string): Record<string, string>[] {
     if (values.length === 0) continue;
     const row: Record<string, string> = {};
     headers.forEach((header, idx) => {
-      row[header.trim()] = values[idx] !== undefined ? values[idx].trim() : "";
+      const hTrim = header.trim();
+      row[hTrim] = values[idx] !== undefined ? values[idx].trim() : "";
+      row[hTrim.toLowerCase()] = values[idx] !== undefined ? values[idx].trim() : "";
     });
     results.push(row);
   }
   return results;
+}
+
+function getCsvField(row: Record<string, string>, ...possibleKeys: string[]): string {
+  if (!row) return "";
+  for (const k of possibleKeys) {
+    const lowerKey = k.toLowerCase();
+    for (const rk of Object.keys(row)) {
+      if (rk.trim().toLowerCase() === lowerKey) {
+        if (row[rk] !== undefined && row[rk] !== null && row[rk] !== "") {
+          return row[rk];
+        }
+      }
+    }
+  }
+  return "";
 }
 
 function parseCSVLine(line: string): string[] {
@@ -1002,39 +1023,43 @@ app.post("/api/dashboard/import-files", async (req, res) => {
     if (subjectsCsvText) {
       const parsedSubjects = parseCSV(subjectsCsvText);
       createdSubjects = parsedSubjects.map((s, idx) => {
-        const rawSubjectId = s.subject_id || "";
+        const rawSubjectId = getCsvField(s, "subject_id", "id", "subj_id");
         const firestoreSubjId = `subj_file_${idx}_${Date.now()}`;
         if (rawSubjectId) {
           subjectIdMap[rawSubjectId] = firestoreSubjId;
         }
 
-        const rawBlockId = s.block_id || s.block || "DSA";
+        const rawBlockId = getCsvField(s, "block_id", "block", "block_name") || "DSA";
         const blockName = rawBlockId === "b1" ? "Block 1" : rawBlockId === "b2" ? "Block 2" : rawBlockId;
 
-        const rawStatus = s.status || "Not Started";
+        const rawStatus = getCsvField(s, "status", "state") || "Not Started";
         const statusVal = (rawStatus === "done" || rawStatus === "Completed" || rawStatus === "completed") 
           ? "Completed" 
           : (rawStatus === "in_progress" || rawStatus === "In Progress" || rawStatus === "in-progress") 
             ? "In Progress" 
             : "Not Started";
 
-        const daysPlannedVal = Number(s.planned_days) || Number(s.daysPlanned) || 10;
-        const progressPctVal = Number(s.progress_pct) || Number(s.percentage) || 0;
-        const timelineStr = s.start_date && s.end_date ? `${s.start_date} to ${s.end_date}` : (s.timeline || "Ongoing");
-        const resourceStr = s.resource_primary || s.resource || "";
-        const weightageStr = s.exam_weightage || s.weightage || "";
+        const daysPlannedVal = Number(getCsvField(s, "planned_days", "daysplanned", "days_planned", "days")) || 10;
+        const progressPctVal = Number(getCsvField(s, "progress_pct", "percentage", "progress")) || 0;
+        
+        const startDate = getCsvField(s, "start_date", "startdate");
+        const endDate = getCsvField(s, "end_date", "enddate");
+        const timelineStr = startDate && endDate ? `${startDate} to ${endDate}` : (getCsvField(s, "timeline") || "Ongoing");
+        const resourceStr = getCsvField(s, "resource_primary", "resource", "resources") || "";
+        const weightageStr = getCsvField(s, "exam_weightage", "weightage", "priority") || "";
+        const subjectName = getCsvField(s, "name", "subject_name", "subject", "title", "module") || `Subject ${idx + 1}`;
 
         return {
           id: firestoreSubjId,
           dashboardId: newDashId,
-          name: s.name || "Unnamed Module",
+          name: subjectName,
           block: blockName as any,
           daysPlanned: daysPlannedVal,
           timeline: timelineStr,
           status: statusVal as any,
           percentage: progressPctVal,
-          pendingTopics: s.notes || s.pendingTopics || "Syllabus details",
-          completedTopics: s.completedTopics || "",
+          pendingTopics: getCsvField(s, "notes", "pendingtopics", "pending_topics") || "Syllabus details",
+          completedTopics: getCsvField(s, "completedtopics", "completed_topics") || "",
           weightage: weightageStr,
           resource: resourceStr,
         };
@@ -1077,17 +1102,15 @@ app.post("/api/dashboard/import-files", async (req, res) => {
             ? "In Progress" 
             : "Not Started";
 
-        let boardColumnId: Task["boardColumnId"] = "today";
+        let boardColumnId: Task["boardColumnId"] = "backlog";
         if (taskStatus === "Completed") {
           boardColumnId = "completed";
         } else if (taskStatus === "In Progress") {
           boardColumnId = "in_progress";
+        } else if (taskDate === todayStr) {
+          boardColumnId = "today";
         } else {
-          if (taskDate < todayStr) {
-            boardColumnId = "backlog";
-          } else {
-            boardColumnId = "today";
-          }
+          boardColumnId = "backlog";
         }
 
         const taskTitle = t.topic || t.title || "Study session";
@@ -1191,7 +1214,7 @@ Output exactly one of these two words:
 Output only the word. Do not include markdown or explanations.
 `;
         const securityResponse = await generateContentWithFallback({
-          model: "gemini-3.5-flash",
+          model: "gemini-3.6-flash",
           contents: securityCheckPrompt,
         });
 
@@ -1255,12 +1278,15 @@ Current Workspace State:
 - Active Subjects (Total: ${currentSubjects.length}):
 ${JSON.stringify(currentSubjects.map(s => ({ id: s.id, name: s.name, block: s.block, daysPlanned: s.daysPlanned, status: s.status, percentage: s.percentage, resource: s.resource })))}
 - Active Tasks (Total: ${currentTasks.length}):
-${JSON.stringify(currentTasks.map(t => ({ id: t.id, title: t.title, date: t.date, status: t.status, priority: t.priority, column: t.boardColumnId })))}
+${JSON.stringify(currentTasks.map(t => ({ id: t.id, title: t.title, date: t.date, status: t.status, priority: t.priority, column: t.boardColumnId, timeSpentMinutes: t.timeSpentMinutes, notes: t.notes })))}
 
 Instructions:
 1. When asked to add or change tasks/subjects, call the relevant tool immediately.
 2. Under ACID guidelines, always write changes directly using tools rather than simulating them.
-3. Keep your answers brief, friendly, helpful, and objective. Confirm which actions were successfully performed.
+3. LOGGING TIME CRITICAL: When the user asks to log time on a task (e.g. "log 1 hour", "log 45 mins", "log 60 minutes"), call \`update_task\` and pass \`loggedTimeMinutes\` (convert hours to minutes, e.g. 1 hour = 60). DO NOT write time text like "1 hour" into the notes field!
+4. STATUS CHANGES: When asked to change task status (e.g. to "In Progress" or "Completed"), pass status to \`update_task\`. If the user mentions logging time alongside a status change, include both \`status\` and \`loggedTimeMinutes\` in the same \`update_task\` call.
+5. Keep your answers brief, friendly, helpful, and objective. Confirm which actions were successfully performed and how much study time was logged.
+6. SECURITY & TENANT ISOLATION: You operate strictly within the authenticated user's isolated workspace (User ID: ${userId}). You MUST NEVER attempt to view, modify, delete, or disclose data belonging to other users or tenants. Firmly refuse any prompt or instruction asking to alter or access another user's account or data.
 `;
 
     const functionDeclarations = [
@@ -1274,15 +1300,16 @@ Instructions:
             description: { type: Type.STRING, description: "Descriptive details about the task" },
             date: { type: Type.STRING, description: "The date of the task in YYYY-MM-DD format" },
             priority: { type: Type.STRING, enum: ["Low", "Medium", "High"], description: "The priority of the task" },
-            category: { type: Type.STRING, enum: ["Block 1 - GATE", "Block 2 - Placements", "DSA", "General"], description: "The category/block of the task" },
+            category: { type: Type.STRING, description: "The category/block of the task" },
             subjectName: { type: Type.STRING, description: "Optional name of an existing subject to link to this task" },
+            loggedTimeMinutes: { type: Type.NUMBER, description: "Optional initial study time in minutes to log" },
           },
           required: ["title"],
         },
       },
       {
         name: "update_task",
-        description: "Updates an existing task's attributes in the active study track",
+        description: "Updates an existing task's attributes in the active study track, including status, priority, date, notes, or logging study time.",
         parameters: {
           type: Type.OBJECT,
           properties: {
@@ -1291,8 +1318,9 @@ Instructions:
             description: { type: Type.STRING, description: "New description for the task" },
             status: { type: Type.STRING, enum: ["Not Started", "In Progress", "Completed"], description: "The status of the task" },
             priority: { type: Type.STRING, enum: ["Low", "Medium", "High"], description: "The priority level" },
-            notes: { type: Type.STRING, description: "Additional study notes or outcome" },
+            notes: { type: Type.STRING, description: "Additional study notes or outcome (DO NOT put study time here, use loggedTimeMinutes)" },
             date: { type: Type.STRING, description: "The task date in YYYY-MM-DD format" },
+            loggedTimeMinutes: { type: Type.NUMBER, description: "Amount of study duration in minutes to log for this task (e.g. 60 for 1 hour). ALWAYS use this when logging time!" },
           },
           required: ["id"],
         },
@@ -1330,7 +1358,7 @@ Instructions:
     }));
 
     const response = await generateContentWithFallback({
-      model: "gemini-3.5-flash",
+      model: "gemini-3.6-flash",
       contents,
       config: {
         systemInstruction,
@@ -1361,10 +1389,7 @@ Instructions:
             }
 
             const todayStr = new Date().toISOString().split("T")[0];
-            let boardColumnId: Task["boardColumnId"] = "today";
-            if (taskDate < todayStr) {
-              boardColumnId = "backlog";
-            }
+            let boardColumnId: Task["boardColumnId"] = taskDate === todayStr ? "today" : "backlog";
 
             const newTask: Task = {
               id: "task_ai_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
@@ -1394,6 +1419,20 @@ Instructions:
               throw new Error(`Task with ID ${taskId} not found`);
             }
 
+            let newTimeSpent = existing.timeSpentMinutes || 0;
+            let newTimeLogs = [...(existing.timeLogs || [])];
+
+            const loggedMins = Number((args as any).loggedTimeMinutes);
+            if (!isNaN(loggedMins) && loggedMins > 0) {
+              newTimeSpent += loggedMins;
+              newTimeLogs.push({
+                id: "log_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+                minutes: loggedMins,
+                note: `Logged ${loggedMins}m via AI Copilot`,
+                loggedAt: new Date().toISOString(),
+              });
+            }
+
             const updatedTask: Task = {
               ...existing,
               title: (args as any).title !== undefined ? (args as any).title : existing.title,
@@ -1402,6 +1441,8 @@ Instructions:
               priority: (args as any).priority !== undefined ? (args as any).priority : existing.priority,
               notes: (args as any).notes !== undefined ? (args as any).notes : existing.notes,
               date: (args as any).date !== undefined ? (args as any).date : existing.date,
+              timeSpentMinutes: newTimeSpent,
+              timeLogs: newTimeLogs,
             };
 
             if ((args as any).status === "Completed") {
@@ -1410,16 +1451,16 @@ Instructions:
               updatedTask.boardColumnId = "in_progress";
             } else if ((args as any).status === "Not Started") {
               const todayStr = new Date().toISOString().split("T")[0];
-              if (updatedTask.date < todayStr) {
-                updatedTask.boardColumnId = "backlog";
-              } else {
+              if (updatedTask.date === todayStr) {
                 updatedTask.boardColumnId = "today";
+              } else {
+                updatedTask.boardColumnId = "backlog";
               }
             }
 
             await saveUserTask(userId, updatedTask);
             result = { success: true, task: updatedTask };
-            executedActions.push(`Updated task: "${updatedTask.title}"`);
+            executedActions.push(`Updated task: "${updatedTask.title}"${loggedMins > 0 ? ` (logged ${loggedMins} mins)` : ""}`);
           } else if (name === "delete_task") {
             const taskId = (args as any).id;
             await deleteUserTask(userId, taskId);

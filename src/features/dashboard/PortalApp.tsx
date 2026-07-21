@@ -998,7 +998,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
           <button
             id="ai-chat-notch-btn"
             onClick={() => setShowAIChatDrawer(!showAIChatDrawer)}
-            className="group flex items-center gap-2.5 px-5 py-2.5 bg-zinc-900/95 hover:bg-zinc-800 text-white rounded-full border border-white/10 shadow-2xl shadow-black/60 backdrop-blur-xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
+            className="group flex items-center gap-2.5 px-5 py-2.5 bg-zinc-900/95 hover:bg-zinc-800 text-white rounded-xl border border-white/10 shadow-2xl shadow-black/60 backdrop-blur-xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer"
             title="Chat with AI"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />

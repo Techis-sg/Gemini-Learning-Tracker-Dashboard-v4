@@ -450,31 +450,38 @@ Generate now based on the details I filled in above.`;
       let resourcesCsvText = "";
       const detected: string[] = [];
 
-      const metaFile = zipData.file("plan_meta.json");
+      const getZipFileEntry = (targetName: string) => {
+        const key = Object.keys(zipData.files).find(
+          path => path.toLowerCase().endsWith(targetName.toLowerCase()) && !zipData.files[path].dir
+        );
+        return key ? zipData.file(key) : null;
+      };
+
+      const metaFile = getZipFileEntry("plan_meta.json");
       if (metaFile) {
         planMetaText = await metaFile.async("string");
         detected.push("plan_meta.json");
       }
 
-      const subjectsFile = zipData.file("subjects.csv");
+      const subjectsFile = getZipFileEntry("subjects.csv");
       if (subjectsFile) {
         subjectsCsvText = await subjectsFile.async("string");
         detected.push("subjects.csv");
       }
 
-      const scheduleFile = zipData.file("schedule.csv");
+      const scheduleFile = getZipFileEntry("schedule.csv");
       if (scheduleFile) {
         scheduleCsvText = await scheduleFile.async("string");
         detected.push("schedule.csv");
       }
 
-      const goalsFile = zipData.file("goals.json");
+      const goalsFile = getZipFileEntry("goals.json");
       if (goalsFile) {
         goalsJsonText = await goalsFile.async("string");
         detected.push("goals.json");
       }
 
-      const resourcesFile = zipData.file("resources.csv");
+      const resourcesFile = getZipFileEntry("resources.csv");
       if (resourcesFile) {
         resourcesCsvText = await resourcesFile.async("string");
         detected.push("resources.csv");

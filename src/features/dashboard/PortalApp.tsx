@@ -975,6 +975,7 @@ export function PortalApp({ user, onLogout, onUserUpdate, appSettings, onSetting
             task={activeViewTaskModal}
             subjects={currentSubjects}
             onClose={() => setActiveViewTaskModal(null)}
+            allTasks={currentTasks}
           />
         )}
       </AnimatePresence>

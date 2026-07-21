@@ -1,8 +1,8 @@
 import React from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, getStatusColor } from "@utils/index";
+import { getPriorityColor, getCategoryBg, getStatusColor, formatToDisplayDate } from "@utils/index";
 import { Tooltip } from "@components/ui";
-import { IconClock as Clock, IconEdit as Edit2, IconTrash as Trash } from "@tabler/icons-react";
+import { IconClock as Clock, IconEdit as Edit2, IconTrash as Trash, IconEye as Eye } from "@tabler/icons-react";
 
 interface TasksGridViewProps {
   tasks: Task[];
@@ -13,6 +13,7 @@ interface TasksGridViewProps {
   onOpenTimeTracker: (task: Task) => void;
   onOpenEditTask: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onViewDetails?: (task: Task) => void;
 }
 
 export default function TasksGridView({
@@ -24,6 +25,7 @@ export default function TasksGridView({
   onOpenTimeTracker,
   onOpenEditTask,
   onDeleteTask,
+  onViewDetails,
 }: TasksGridViewProps) {
   const getSubjectName = (subjectId?: string) => {
     if (!subjectId) return "";
@@ -43,82 +45,112 @@ export default function TasksGridView({
             No matching tasks found.
           </div>
         ) : (
-          paginatedTasks.map((task) => (
-            <div
-              key={task.id}
-              className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold">
-                    {task.date}
-                  </span>
-                  <span className={`text-[10px] px-2 py-0.5 font-bold border border-slate-100 rounded-md uppercase ${getStatusColor(task.status)}`}>
-                    {task.status}
-                  </span>
-                </div>
+          paginatedTasks.map((task, idx) => {
+            const serialFallback = `TSK-${String(startIndex + idx + 1).padStart(3, "0")}`;
+            const displayTaskId = task.taskId || task.taskid || serialFallback;
 
-                <h4 className="font-bold text-slate-800 text-md leading-tight mb-1">{task.title}</h4>
-                
-                {task.subjectId && (
-                  <div className="text-[10px] font-bold text-slate-600 mb-2 truncate bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/20 inline-block font-mono">
-                    📚 {getSubjectName(task.subjectId)}
-                  </div>
-                )}
-
-                {task.description && (
-                  <p className="text-xs text-slate-500 font-mono line-clamp-3 mb-3">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-1">
-                  <span className={`text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 rounded-md ${getCategoryBg(task.category)}`}>
-                    {task.category}
-                  </span>
-                  <span className={`text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 rounded-md ${getPriorityColor(task.priority)}`}>
-                    {task.priority}
-                  </span>
-                  {task.timeSpentMinutes > 0 && (
-                    <span className="text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 bg-indigo-50 text-indigo-700 rounded-md">
-                      ⏱️ {task.timeSpentMinutes}m
+            return (
+              <div
+                key={task.id}
+                className="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 relative"
+              >
+                <div>
+                  <div className="flex justify-between items-center gap-2 mb-2">
+                    <span className="text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-100/60 px-2 py-0.5 rounded-md">
+                      #{displayTaskId}
                     </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-bold">
+                        {formatToDisplayDate(task.date)}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 font-bold border border-slate-100 rounded-md uppercase ${getStatusColor(task.status)}`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h4
+                    onClick={() => onViewDetails && onViewDetails(task)}
+                    className="font-bold text-slate-800 text-md leading-tight mb-1 cursor-pointer hover:text-indigo-600 hover:underline transition-colors"
+                  >
+                    {task.title}
+                  </h4>
+                  
+                  {task.subjectId && (
+                    <div className="text-[10px] font-bold text-slate-600 mb-2 truncate bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/20 inline-block font-mono">
+                      📚 {getSubjectName(task.subjectId)}
+                    </div>
+                  )}
+
+                  {task.description && (
+                    <p className="text-xs text-slate-500 font-mono line-clamp-3 mb-3">
+                      {task.description}
+                    </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 justify-end pt-2.5 border-t border-slate-100">
-                  <Tooltip content="Log Time" position="top">
-                    <button
-                      onClick={() => onOpenTimeTracker(task)}
-                      className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                    </button>
-                  </Tooltip>
-                  
-                  <Tooltip content="Edit Task" position="top">
-                    <button
-                      onClick={() => onOpenEditTask(task)}
-                      className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                  </Tooltip>
-                  
-                  <Tooltip content="Delete Task" position="top">
-                    <button
-                      onClick={() => onDeleteTask(task.id)}
-                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash className="w-3.5 h-3.5" />
-                    </button>
-                  </Tooltip>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-1">
+                    <span className={`text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 rounded-md ${getCategoryBg(task.category)}`}>
+                      {task.category}
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 rounded-md ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                    {task.timeSpentMinutes > 0 && (
+                      <span className="text-[9px] px-1.5 py-0.5 font-bold border border-slate-100 bg-indigo-50 text-indigo-700 rounded-md">
+                        ⏱️ {task.timeSpentMinutes}m
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 justify-end pt-2.5 border-t border-slate-100">
+                    {onViewDetails && (
+                      <Tooltip content="More Details" position="top">
+                        <button
+                          type="button"
+                          onClick={() => onViewDetails(task)}
+                          className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                    )}
+
+                    <Tooltip content="Log Time" position="top">
+                      <button
+                        type="button"
+                        onClick={() => onOpenTimeTracker(task)}
+                        className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                      </button>
+                    </Tooltip>
+                    
+                    <Tooltip content="Edit Task" position="top">
+                      <button
+                        type="button"
+                        onClick={() => onOpenEditTask(task)}
+                        className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </Tooltip>
+                    
+                    <Tooltip content="Delete Task" position="top">
+                      <button
+                        type="button"
+                        onClick={() => onDeleteTask(task.id)}
+                        className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

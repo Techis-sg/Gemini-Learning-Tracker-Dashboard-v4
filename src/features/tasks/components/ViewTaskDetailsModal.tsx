@@ -1,12 +1,13 @@
 import React from "react";
 import { Task, Subject } from "@/types";
-import { getPriorityColor, getCategoryBg, getStatusColor, Modal } from "@utils/index";
+import { getPriorityColor, getCategoryBg, getStatusColor, Modal, formatToDisplayDate } from "@utils/index";
 
 interface ViewTaskDetailsModalProps {
   task: Task | null;
   subjects: Subject[];
   onClose: () => void;
   indexInList?: number;
+  allTasks?: Task[];
 }
 
 export function ViewTaskDetailsModal({
@@ -14,6 +15,7 @@ export function ViewTaskDetailsModal({
   subjects,
   onClose,
   indexInList = 0,
+  allTasks = [],
 }: ViewTaskDetailsModalProps) {
   if (!task) return null;
 
@@ -23,8 +25,16 @@ export function ViewTaskDetailsModal({
     return sub ? sub.name : "";
   };
 
+  let computedIndex = indexInList;
+  if (allTasks && allTasks.length > 0) {
+    const foundIdx = allTasks.findIndex((t) => t.id === task.id);
+    if (foundIdx >= 0) {
+      computedIndex = foundIdx;
+    }
+  }
+
   const formattedTaskId =
-    task.taskId || task.taskid || `TSK-${String(indexInList + 1).padStart(3, "0")}`;
+    task.taskId || task.taskid || `TSK-${String(computedIndex + 1).padStart(3, "0")}`;
 
   return (
     <Modal isOpen={task !== null} onClose={onClose} maxWidthClass="max-w-xl">
@@ -61,7 +71,7 @@ export function ViewTaskDetailsModal({
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 font-mono text-xs">
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Syllabus Date</span>
-              <span className="font-bold text-slate-700">{task.date}</span>
+              <span className="font-bold text-slate-700">{formatToDisplayDate(task.date)}</span>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Total Logged Time</span>
